@@ -1,6 +1,6 @@
 // Generic API response structure
 export interface ApiResponse<T> {
-  success: 'success' | 'failure';
+  status: 'success' | 'fail';
   message: string;
   data?: T;
   error?: string;

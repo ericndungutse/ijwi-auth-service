@@ -1,8 +1,8 @@
 import mongoose from 'mongoose';
 import bcrypt from 'bcrypt';
-import { IUserDocument } from './types/User.types';
+import { IAccountDocument } from './account.types';
 
-const userSchema = new mongoose.Schema<IUserDocument>(
+const accountSchema = new mongoose.Schema<IAccountDocument>(
   {
     email: {
       type: String,
@@ -46,7 +46,7 @@ const userSchema = new mongoose.Schema<IUserDocument>(
 );
 
 // Hash password before saving
-userSchema.pre<IUserDocument>('save', async function (next) {
+accountSchema.pre<IAccountDocument>('save', async function (next) {
   if (!this.isModified('password')) return next();
   try {
     const salt = await bcrypt.genSalt(10);
@@ -58,7 +58,7 @@ userSchema.pre<IUserDocument>('save', async function (next) {
 });
 
 // Create emailVerification code on pre save for new users
-userSchema.pre<IUserDocument>('save', function (next) {
+accountSchema.pre<IAccountDocument>('save', function (next) {
   if (this.isNew) {
     this.emailVerification.code = Math.floor(100000 + Math.random() * 900000); // Generate a 6-digit code
   }
@@ -66,10 +66,10 @@ userSchema.pre<IUserDocument>('save', function (next) {
 });
 
 // Method to compare password
-userSchema.methods.comparePassword = async function (candidatePassword: string): Promise<boolean> {
+accountSchema.methods.comparePassword = async function (candidatePassword: string): Promise<boolean> {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-const User = mongoose.model<IUserDocument>('User', userSchema);
+const Account = mongoose.model<IAccountDocument>('Account', accountSchema);
 
-export default User;
+export default Account;

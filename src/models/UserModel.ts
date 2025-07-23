@@ -25,6 +25,17 @@ const userSchema = new mongoose.Schema<IUserDocument>(
       default: 'user',
       required: true,
     },
+
+    emailVerification: {
+      code: {
+        type: String,
+        default: null,
+      },
+      verified: {
+        type: Boolean,
+        default: false,
+      },
+    },
   },
   {
     timestamps: true,
@@ -44,6 +55,14 @@ userSchema.pre<IUserDocument>('save', async function (next) {
   } catch (err) {
     next(err);
   }
+});
+
+// Create emailVerification code on pre save for new users
+userSchema.pre<IUserDocument>('save', function (next) {
+  if (this.isNew) {
+    this.emailVerification.code = Math.floor(100000 + Math.random() * 900000); // Generate a 6-digit code
+  }
+  next();
 });
 
 // Method to compare password

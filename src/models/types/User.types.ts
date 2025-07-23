@@ -16,6 +16,10 @@ export interface IUserDocument extends Document {
   isActive: boolean;
   createdAt: Date;
   updatedAt: Date;
+  emailVerification: {
+    code: number | null;
+    verified: boolean;
+  };
   comparePassword(candidatePassword: string): Promise<boolean>;
 }
 

@@ -1,6 +1,5 @@
-import { ApiResponse } from '../../dto/ApiResponse';
-import { IAccountCreateResponseDto } from '../../models';
+import { IAccountCreateResponseDto, IAccountDocument } from '../../models';
 
-export interface IUserService {
-  createUser(userDto: IAccountCreateResponseDto): Promise<ApiResponse<void>>;
+export interface IAccountService {
+  createUser(userDto: IAccountCreateResponseDto): Promise<IAccountDocument>;
 }

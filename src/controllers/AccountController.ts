@@ -32,6 +32,10 @@ export class AccountController {
 
   async signIn(req: Request, res: Response, next: NextFunction): Promise<void> {
     const { email, password } = req.body;
+    if (!email || !password) {
+      next(new ApiError('Email and password are required', 401));
+      return;
+    }
     const user = await this.accountService.signIn(email, password);
 
     if (!user) {

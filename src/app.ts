@@ -5,6 +5,7 @@ const accountRouter = require('./routes/account.routes');
 
 import { Application, Request, Response, NextFunction } from 'express';
 import { ApiResponse } from './dto/ApiResponse';
+import { errorHandler } from './middleware/errorHandler';
 
 // Load environment variables
 dotenv.config();
@@ -82,63 +83,8 @@ export class App {
   }
 
   private initializeErrorHandling(): void {
-    // Global error handler
-    this.app.use((error: Error, req: Request, res: Response, next: NextFunction) => {
-      console.error('Global Error Handler:', error);
-
-      // Mongoose validation error
-      if (error.name === 'ValidationError') {
-        const response: ApiResponse<null, string[]> = {
-          status: 'fail',
-          message: 'Validation failed',
-          data: null,
-          errors: Object.values(error).map((err: any) => err.message),
-        };
-        return res.status(400).json(response);
-      }
-
-      // Mongoose duplicate key error
-      if (error.name === 'MongoServerError' && (error as any).code === 11000) {
-        const response: ApiResponse<null, { field: string; message: string }[]> = {
-          status: 'fail',
-          message: 'Duplicate entry detected',
-          data: null,
-          errors: [{ field: (error as any).keyValue.email, message: error.message }],
-        };
-        return res.status(409).json(response);
-      }
-
-      // JWT errors
-      if (error.name === 'JsonWebTokenError') {
-        const response: ApiResponse<null, { message: string; field: string }[]> = {
-          status: 'fail',
-          message: 'Invalid token',
-          data: null,
-          errors: [{ message: 'Invalid token', field: 'Authorization' }],
-        };
-        return res.status(401).json(response);
-      }
-
-      if (error.name === 'TokenExpiredError') {
-        const response: ApiResponse<null, { message: string; field: string }[]> = {
-          status: 'fail',
-          message: 'Token expired',
-          data: null,
-          errors: [{ message: 'Token expired', field: 'Authorization' }],
-        };
-        return res.status(401).json(response);
-      }
-
-      // Default error response
-      const response: ApiResponse<null, { message: string; field: string }[]> = {
-        status: 'fail',
-        message: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message,
-        data: null,
-        errors: [{ message: 'Internal server error', field: 'server' }],
-      };
-
-      return res.status(500).json(response);
-    });
+    // Use the centralized error handler middleware
+    this.app.use(errorHandler);
   }
 
   public async connectToDatabase(): Promise<void> {

@@ -3,6 +3,7 @@ import { IAccountDocument } from '../../models/account/account.types';
 import { IAccountRepository } from '../../repository/IAccountRepository';
 import { ICreateAccountDto } from '../../dto/accountDtos';
 import { IEmailService } from '../interfaces/IEmailService';
+import { ApiError } from '../../dto/ApiError';
 
 export class AccountService implements IAccountService {
   private accountRepository: IAccountRepository;
@@ -14,17 +15,13 @@ export class AccountService implements IAccountService {
   }
 
   async createUser(userDto: ICreateAccountDto): Promise<IAccountDocument> {
-    // Create User
     if (!userDto.email || !userDto.password) {
-      throw new Error('Email and password are required');
+      throw new ApiError('Email and password are required', 400);
     }
     const user: IAccountDocument = await this.accountRepository.createAccount(userDto);
 
     // Send Verification Email
-    // 1. Create a verification code
     const verificationCode: number | null = this.accountRepository.getVerificationCode(user);
-
-    // 2. Send the email
     await this.emailService.sendVerificationEmail(user.email, verificationCode);
 
     return user;

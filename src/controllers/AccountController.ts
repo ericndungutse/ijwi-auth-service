@@ -2,6 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import { IAccountService } from '../services/interfaces/IAccountService';
 import { ApiResponse } from '../dto';
 import { IAccountDto, ICreateAccountDto } from '../dto/accountDtos';
+import { ApiError } from '../dto/ApiError';
 
 export class AccountController {
   private accountService: IAccountService;
@@ -24,8 +25,8 @@ export class AccountController {
       };
 
       res.status(201).json(response);
-    } catch (error) {
-      console.error(error);
+    } catch (error: any) {
+      next(error);
     }
   }
 

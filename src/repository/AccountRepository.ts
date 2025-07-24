@@ -4,7 +4,7 @@ import { IAccountDocument } from '../models/account/account.types';
 import { IAccountRepository } from './IAccountRepository';
 import { ICreateAccountDto } from '../dto/accountDtos';
 
-class AccountRepository implements IAccountRepository {
+export class AccountRepository implements IAccountRepository {
   private Account: Model<IAccountDocument>;
 
   constructor(Account: Model<IAccountDocument>) {
@@ -20,5 +20,3 @@ class AccountRepository implements IAccountRepository {
     return await this.Account.create(accountData);
   }
 }
-
-module.exports = { AccountRepository };

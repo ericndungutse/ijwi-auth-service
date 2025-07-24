@@ -1,8 +1,8 @@
-const mongoose = require('mongoose');
-const bcrypt = require('bcrypt');
 import { IAccountDocument } from './account.types';
+import mongoose from 'mongoose';
+const bcrypt = require('bcrypt');
 
-const accountSchema = new mongoose.Schema(
+const accountSchema = new mongoose.Schema<IAccountDocument>(
   {
     email: {
       type: String,
@@ -70,6 +70,4 @@ accountSchema.methods.comparePassword = async function (candidatePassword: strin
   return bcrypt.compare(candidatePassword, this.password);
 };
 
-const Account = mongoose.model('Account', accountSchema);
-
-module.exports = Account;
+export const Account = mongoose.model<IAccountDocument>('Account', accountSchema);

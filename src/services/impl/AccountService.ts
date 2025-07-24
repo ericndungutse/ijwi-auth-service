@@ -4,7 +4,7 @@ import { IAccountRepository } from '../../repository/IAccountRepository';
 import { ICreateAccountDto } from '../../dto/accountDtos';
 import { IEmailService } from '../interfaces/IEmailService';
 
-class AccountService implements IAccountService {
+export class AccountService implements IAccountService {
   private accountRepository: IAccountRepository;
   private emailService: IEmailService;
 
@@ -30,5 +30,3 @@ class AccountService implements IAccountService {
     return user;
   }
 }
-
-module.exports = { AccountService };

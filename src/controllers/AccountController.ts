@@ -3,7 +3,7 @@ import { IAccountService } from '../services/interfaces/IAccountService';
 import { ApiResponse } from '../dto';
 import { ICreateAccountDto } from '../dto/accountDtos';
 
-class AccountController {
+export class AccountController {
   private accountService: IAccountService;
 
   constructor(accountService: IAccountService) {
@@ -26,5 +26,3 @@ class AccountController {
     }
   }
 }
-
-module.exports = { AccountController };

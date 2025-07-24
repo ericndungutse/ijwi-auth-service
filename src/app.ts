@@ -9,7 +9,7 @@ import { ApiResponse } from './dto/ApiResponse';
 // Load environment variables
 dotenv.config();
 
-class App {
+export class App {
   public app: Application;
 
   constructor() {
@@ -173,5 +173,3 @@ class App {
     return this.app;
   }
 }
-
-module.exports = App;

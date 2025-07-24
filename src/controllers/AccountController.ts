@@ -1,9 +1,9 @@
-import { ApiResponse } from './../dto/ApiResponse';
-import { IAccountCreateResponseDto } from '../models';
+import { NextFunction, Request, Response } from 'express';
 import { IAccountService } from '../services/interfaces/IAccountService';
-import { NextFunction, Request, response, Response } from 'express';
+import { IAccountCreateResponseDto } from '../models/account/account.types';
+import { ApiResponse } from '../dto';
 
-export class AccountController {
+class AccountController {
   private accountService: IAccountService;
 
   constructor(accountService: IAccountService) {
@@ -14,7 +14,7 @@ export class AccountController {
     const userDto: IAccountCreateResponseDto = req.body;
     await this.accountService.createUser(userDto);
 
-    const response: ApiResponse<void> = {
+    const response: ApiResponse<string, null> = {
       status: 'success',
       message: 'User created successfully',
     };
@@ -22,3 +22,5 @@ export class AccountController {
     res.status(201).json(response);
   }
 }
+
+module.exports = { AccountController };

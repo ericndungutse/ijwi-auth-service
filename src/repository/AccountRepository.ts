@@ -1,11 +1,11 @@
-import mongoose from 'mongoose';
-import { IAccountCreateResponseDto, IAccountDocument } from '../models';
+import { Model } from 'mongoose';
+import { IAccountCreateResponseDto, IAccountDocument } from '../models/account/account.types';
 import { IAccountRepository } from './IAccountRepository';
 
-export class AccountRepository implements IAccountRepository {
-  private Account: mongoose.Model<IAccountDocument>;
+class AccountRepository implements IAccountRepository {
+  private Account: Model<IAccountDocument>;
 
-  constructor(Account: mongoose.Model<IAccountDocument>) {
+  constructor(Account: Model<IAccountDocument>) {
     this.Account = Account;
   }
 
@@ -13,3 +13,5 @@ export class AccountRepository implements IAccountRepository {
     return await this.Account.create(accountData);
   }
 }
+
+module.exports = { AccountRepository };

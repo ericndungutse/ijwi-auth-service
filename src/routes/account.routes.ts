@@ -1,7 +1,8 @@
-import express from 'express';
-import { container } from '../infrastructure/container';
+const express = require('express');
+const { container } = require('../infrastructure/container');
 
 const accountRouter = express.Router();
 
 accountRouter.post('/register', container.accountController.createUser);
-export default accountRouter;
+
+module.exports = accountRouter;

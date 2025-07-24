@@ -1,8 +1,8 @@
 import { IAccountService } from './../interfaces/IAccountService';
-import { IAccountCreateResponseDto, IAccountDocument } from '../../models';
+import { IAccountCreateResponseDto, IAccountDocument } from '../../models/account/account.types';
 import { IAccountRepository } from '../../repository/IAccountRepository';
 
-export class AccountService implements IAccountService {
+class AccountService implements IAccountService {
   private accountRepository: IAccountRepository;
   constructor(accountRepository: IAccountRepository) {
     this.accountRepository = accountRepository;
@@ -11,3 +11,5 @@ export class AccountService implements IAccountService {
     return await this.accountRepository.createAccount(userDto);
   }
 }
+
+module.exports = { AccountService };

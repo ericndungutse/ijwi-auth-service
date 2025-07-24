@@ -1,12 +1,18 @@
-import { AccountController } from './../controllers';
-import Account from '../models/account/account.model';
-import { AccountRepository } from '../repository';
-import { AccountService } from '../services/impl/AccountService';
+const AccountRepoModule = require('../repository/AccountRepository');
+const AccountServiceModule = require('../services/impl/AccountService');
+const Account = require('../models/account/account.model');
+const AccountControllerModule = require('../controllers/AccountController');
 
-const accountRepository: AccountRepository = new AccountRepository(Account);
-const accountService: AccountService = new AccountService(accountRepository);
-const accountController: AccountController = new AccountController(accountService);
+const AccountRepositoryClass = AccountRepoModule.AccountRepository;
+const AccountServiceClass = AccountServiceModule.AccountService;
+const AccountControllerClass = AccountControllerModule.AccountController;
 
-export const container = {
+const accountRepository = new AccountRepositoryClass(Account);
+const accountService = new AccountServiceClass(accountRepository);
+const accountController = new AccountControllerClass(accountService);
+
+const serviceContainer = {
   accountController: accountController,
 };
+
+module.exports = { container: serviceContainer };

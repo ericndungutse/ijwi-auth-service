@@ -1,5 +1,7 @@
-import { IAccountCreateResponseDto, IAccountDocument } from '../models/account/account.types';
+import { ICreateAccountDto } from '../dto/accountDtos';
+import { IAccountDocument } from '../models/account/account.types';
 
 export interface IAccountRepository {
-  createAccount(accountData: IAccountCreateResponseDto): Promise<IAccountDocument>;
+  getVerificationCode(user: IAccountDocument): number;
+  createAccount(accountData: ICreateAccountDto): Promise<IAccountDocument>;
 }

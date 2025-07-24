@@ -1,6 +1,8 @@
+import { EmailService } from './../services/impl/EmailService';
 import { Model } from 'mongoose';
-import { IAccountCreateResponseDto, IAccountDocument } from '../models/account/account.types';
+import { IAccountDocument } from '../models/account/account.types';
 import { IAccountRepository } from './IAccountRepository';
+import { ICreateAccountDto } from '../dto/accountDtos';
 
 class AccountRepository implements IAccountRepository {
   private Account: Model<IAccountDocument>;
@@ -9,7 +11,12 @@ class AccountRepository implements IAccountRepository {
     this.Account = Account;
   }
 
-  async createAccount(accountData: IAccountCreateResponseDto): Promise<IAccountDocument> {
+  getVerificationCode(user: IAccountDocument): number {
+    // Implement your code creation logic here
+    return user.emailVerification.code ?? 0;
+  }
+
+  async createAccount(accountData: ICreateAccountDto): Promise<IAccountDocument> {
     return await this.Account.create(accountData);
   }
 }

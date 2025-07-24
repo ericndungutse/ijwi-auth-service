@@ -75,7 +75,7 @@ export class App {
         status: 'fail',
         message: `Route ${req.originalUrl} not found`,
         data: null,
-        error: [{ message: `Route ${req.originalUrl} not found`, field: 'url' }],
+        errors: [{ message: `Route ${req.originalUrl} not found`, field: 'url' }],
       };
       res.status(404).json(response);
     });
@@ -92,7 +92,7 @@ export class App {
           status: 'fail',
           message: 'Validation failed',
           data: null,
-          error: Object.values(error).map((err: any) => err.message),
+          errors: Object.values(error).map((err: any) => err.message),
         };
         return res.status(400).json(response);
       }
@@ -103,7 +103,7 @@ export class App {
           status: 'fail',
           message: 'Duplicate entry detected',
           data: null,
-          error: [{ field: (error as any).keyValue.email, message: error.message }],
+          errors: [{ field: (error as any).keyValue.email, message: error.message }],
         };
         return res.status(409).json(response);
       }
@@ -114,7 +114,7 @@ export class App {
           status: 'fail',
           message: 'Invalid token',
           data: null,
-          error: [{ message: 'Invalid token', field: 'Authorization' }],
+          errors: [{ message: 'Invalid token', field: 'Authorization' }],
         };
         return res.status(401).json(response);
       }
@@ -124,7 +124,7 @@ export class App {
           status: 'fail',
           message: 'Token expired',
           data: null,
-          error: [{ message: 'Token expired', field: 'Authorization' }],
+          errors: [{ message: 'Token expired', field: 'Authorization' }],
         };
         return res.status(401).json(response);
       }
@@ -134,7 +134,7 @@ export class App {
         status: 'fail',
         message: process.env.NODE_ENV === 'production' ? 'Internal server error' : error.message,
         data: null,
-        error: [{ message: 'Internal server error', field: 'server' }],
+        errors: [{ message: 'Internal server error', field: 'server' }],
       };
 
       return res.status(500).json(response);

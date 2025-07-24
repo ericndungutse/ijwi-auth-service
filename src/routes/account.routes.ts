@@ -8,5 +8,8 @@ const accountRouter = express.Router();
 accountRouter.post('/register', (req: Request, res: Response, next: NextFunction) =>
   container.accountController.createUser(req, res, next)
 );
+accountRouter.post('/signin', (req: Request, res: Response, next: NextFunction) =>
+  container.accountController.signIn(req, res, next)
+);
 
 module.exports = accountRouter;

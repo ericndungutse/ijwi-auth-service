@@ -19,4 +19,8 @@ export class AccountRepository implements IAccountRepository {
   async createAccount(accountData: ICreateAccountDto): Promise<IAccountDocument> {
     return await this.Account.create(accountData);
   }
+
+  async findByEmail(email: string): Promise<IAccountDocument | null> {
+    return await this.Account.findOne({ email });
+  }
 }

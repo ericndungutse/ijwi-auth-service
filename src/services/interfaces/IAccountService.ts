@@ -3,4 +3,5 @@ import { IAccountDocument } from '../../models/account/account.types';
 
 export interface IAccountService {
   createUser(userDto: ICreateAccountDto): Promise<IAccountDocument>;
+  signIn(email: string, password: string): Promise<IAccountDocument | null>;
 }

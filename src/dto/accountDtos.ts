@@ -20,5 +20,21 @@ export interface IAccountCreateResponseDto {
   updatedAt: Date;
 }
 
+export interface IAccountSignInDto {
+  email: string;
+  password: string;
+}
+
+export interface IAccountDto {
+  user: {
+    id: string;
+    email: string;
+    role: 'admin' | 'user';
+    isActive: boolean;
+    createdAt: Date;
+    token: string; // JWT token
+  };
+}
+
 // For updating users (partial)
 // export type IAccountUpdateDto = Partial<ICreateAccountDto>;

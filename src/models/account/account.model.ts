@@ -1,4 +1,6 @@
 import { IAccountDocument } from './account.types';
+const jwt = require('jsonwebtoken');
+
 import mongoose from 'mongoose';
 const bcrypt = require('bcrypt');
 
@@ -70,4 +72,18 @@ accountSchema.methods.comparePassword = async function (candidatePassword: strin
   return bcrypt.compare(candidatePassword, this.password);
 };
 
+// Method to generate jwt
+accountSchema.methods.generateJwt = function (): string {
+  const payload = {
+    id: this._id,
+    email: this.email,
+    role: this.role,
+  };
+
+  const token: string = jwt.sign(payload, process.env.JWT_SECRET!, {
+    expiresIn: process.env.JWT_EXPIRES_IN || '1h',
+  });
+
+  return token;
+};
 export const Account = mongoose.model<IAccountDocument>('Account', accountSchema);

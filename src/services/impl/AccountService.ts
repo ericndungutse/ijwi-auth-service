@@ -29,4 +29,12 @@ export class AccountService implements IAccountService {
 
     return user;
   }
+
+  async signIn(email: string, password: string): Promise<IAccountDocument | null> {
+    const user = await this.accountRepository.findByEmail(email);
+    if (user && (await user.comparePassword(password))) {
+      return user;
+    }
+    return null;
+  }
 }

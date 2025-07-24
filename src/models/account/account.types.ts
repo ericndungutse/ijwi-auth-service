@@ -1,7 +1,7 @@
 import { Document, ObjectId } from 'mongoose';
 
 export interface IAccountDocument extends Document {
-  id: ObjectId;
+  _id: ObjectId;
   email: string;
   password: string;
   role: 'admin' | 'user';
@@ -13,4 +13,5 @@ export interface IAccountDocument extends Document {
     verified: boolean;
   };
   comparePassword(candidatePassword: string): Promise<boolean>;
+  generateJwt(): string;
 }

@@ -3,5 +3,5 @@ export interface ApiResponse<T, E> {
   status: 'success' | 'fail';
   message: string;
   data?: T;
-  error?: E;
+  errors?: E;
 }

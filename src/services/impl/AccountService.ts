@@ -37,4 +37,8 @@ export class AccountService implements IAccountService {
     }
     return null;
   }
+
+  async verifyEmail(email: string, code: number): Promise<boolean> {
+    return this.accountRepository.verifyEmail(email, code);
+  }
 }

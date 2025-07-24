@@ -13,11 +13,14 @@ export class AccountController {
   async createUser(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       const userDto: ICreateAccountDto = req.body;
-      await this.accountService.createUser(userDto);
+      const user = await this.accountService.createUser(userDto);
 
-      const response: ApiResponse<string, null> = {
+      const response: ApiResponse<{ email: string }, null> = {
         status: 'success',
-        message: 'User created successfully',
+        message: 'User created successfully! Please check your email for verification.',
+        data: {
+          email: user.email,
+        },
       };
 
       res.status(201).json(response);
@@ -94,5 +97,37 @@ export class AccountController {
       data: userDto,
     };
     res.status(200).json(response);
+  }
+
+  async verifyEmail(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { email, code } = req.body;
+      if (!email || !code) {
+        const response: ApiResponse<null, { message: string }[]> = {
+          status: 'fail',
+          message: 'Email and verification code are required.',
+          errors: [{ message: 'Email and verification code are required.' }],
+        };
+        res.status(400).json(response);
+        return;
+      }
+      const success = await this.accountService.verifyEmail(email, Number(code));
+      if (!success) {
+        const response: ApiResponse<null, { message: string }[]> = {
+          status: 'fail',
+          message: 'Invalid email or verification code.',
+          errors: [{ message: 'Invalid email or verification code.' }],
+        };
+        res.status(400).json(response);
+        return;
+      }
+      const response: ApiResponse<string, null> = {
+        status: 'success',
+        message: 'Email verified successfully',
+      };
+      res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
   }
 }

@@ -12,4 +12,8 @@ accountRouter.post('/signin', (req: Request, res: Response, next: NextFunction) 
   container.accountController.signIn(req, res, next)
 );
 
+accountRouter.patch('/verify-email', (req: Request, res: Response, next: NextFunction) =>
+  container.accountController.verifyEmail(req, res, next)
+);
+
 module.exports = accountRouter;

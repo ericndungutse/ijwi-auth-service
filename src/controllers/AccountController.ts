@@ -73,11 +73,6 @@ export class AccountController {
       const response: ApiResponse<null, { message: string }[]> = {
         status: 'fail',
         message: 'Email not verified. Please verify your email before signing in.',
-        errors: [
-          {
-            message: 'Email not verified. Please verify your email before signing in.',
-          },
-        ],
       };
       res.status(401).json(response);
       return;

@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 
 import mongoose from 'mongoose';
 const bcrypt = require('bcrypt');
+import { generateSixDigitCode } from '../../utils/generateCode';
 
 const accountSchema = new mongoose.Schema<IAccountDocument>(
   {
@@ -62,7 +63,7 @@ accountSchema.pre('save', async function (this: IAccountDocument, next: any) {
 // Create emailVerification code on pre save for new users
 accountSchema.pre('save', function (this: IAccountDocument, next: any) {
   if (this.isNew) {
-    this.emailVerification.code = Math.floor(100000 + Math.random() * 900000); // Generate a 6-digit code
+    this.emailVerification.code = generateSixDigitCode();
   }
   next();
 });

@@ -162,7 +162,6 @@ describe('Signin', () => {
     expect(response.body).toMatchObject({
       status: 'fail',
       message: 'Email not verified. Please verify your email before signing in.',
-      errors: [{ message: 'Email not verified. Please verify your email before signing in.' }],
     });
   });
 

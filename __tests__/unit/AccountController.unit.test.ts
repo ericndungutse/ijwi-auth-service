@@ -6,6 +6,7 @@ describe('AccountController', () => {
     createUser: jest.fn(),
     signIn: jest.fn(),
     verifyEmail: jest.fn(),
+    forgotPassword: jest.fn(),
   };
   const controller = new AccountController(mockService as any);
 
@@ -104,6 +105,32 @@ describe('AccountController', () => {
       await controller.verifyEmail(req, res, mockNext);
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ status: 'success' }));
+    });
+  });
+
+  describe('forgotPassword', () => {
+    it('should return 400 if email missing', async () => {
+      const req = mockReq({});
+      const res = mockRes();
+      await controller.forgotPassword(req, res, mockNext);
+      expect(res.status).toHaveBeenCalledWith(400);
+    });
+    it('should call service and return 200 on success', async () => {
+      mockService.forgotPassword = jest.fn().mockResolvedValue(undefined);
+      const req = mockReq({ email: 'a@b.com' });
+      const res = mockRes();
+      await controller.forgotPassword(req, res, mockNext);
+      expect(mockService.forgotPassword).toHaveBeenCalledWith('a@b.com');
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ status: 'success' }));
+    });
+    it('should call next(error) on error', async () => {
+      const error = new ApiError('fail', 400);
+      mockService.forgotPassword = jest.fn().mockRejectedValue(error);
+      const req = mockReq({ email: 'a@b.com' });
+      const res = mockRes();
+      await controller.forgotPassword(req, res, mockNext);
+      expect(mockNext).toHaveBeenCalledWith(error);
     });
   });
 });

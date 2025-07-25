@@ -184,3 +184,34 @@ describe('Signin', () => {
     });
   });
 });
+
+describe('Forgot Password', () => {
+  it('should return 200 and generic message for valid email', async () => {
+    const user = { email: 'forgot@example.com', password: 'password123' };
+    await supertest(app).post('/api/v1/auth/register').send(user);
+    // verify email for forgot password to work
+    const dbUser = await mongoose.connection.collection('accounts').findOne({ email: user.email });
+    if (!dbUser) throw new Error('Test setup failed: user not found');
+    await mongoose.connection
+      .collection('accounts')
+      .updateOne({ _id: dbUser._id }, { $set: { 'emailVerification.verified': true } });
+    const response = await supertest(app).post('/api/v1/auth/forgot-password').send({ email: user.email });
+    expect(response.status).toBe(200);
+    expect(response.body.status).toBe('success');
+    expect(response.body.message).toMatch(
+      /password reset code has been sent|email with a password reset code has been sent/i
+    );
+  });
+  it('should return 404 for non-existent email', async () => {
+    const response = await supertest(app).post('/api/v1/auth/forgot-password').send({ email: 'notfound@example.com' });
+    expect(response.status).toBe(404);
+    expect(response.body.status).toBe('fail');
+    expect(response.body.message).toMatch(/user not found|email not found/i);
+  });
+  it('should return 400 if email is missing', async () => {
+    const response = await supertest(app).post('/api/v1/auth/forgot-password').send({});
+    expect(response.status).toBe(400);
+    expect(response.body.status).toBe('fail');
+    expect(response.body.message).toMatch(/email is required/i);
+  });
+});

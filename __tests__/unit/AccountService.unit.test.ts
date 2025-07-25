@@ -11,6 +11,7 @@ describe('AccountService', () => {
   };
   const mockEmail = {
     sendVerificationEmail: jest.fn(),
+    sendPasswordResetEmail: jest.fn(),
   };
   const service = new AccountService(mockRepo as any, mockEmail as any);
 
@@ -85,6 +86,29 @@ describe('AccountService', () => {
         save: jest.fn().mockResolvedValue(true),
       });
       await expect(service.verifyEmail('a@b.com', 999999)).rejects.toThrow('Invalid code or already verified');
+    });
+  });
+
+  describe('forgotPassword', () => {
+    it('throws if user not found', async () => {
+      mockRepo.findByEmail.mockResolvedValue(null);
+      await expect(service.forgotPassword('notfound@b.com')).rejects.toThrow(ApiError);
+    });
+    it('sets hashed code and expiration, calls email service', async () => {
+      const save = jest.fn().mockResolvedValue(true);
+      const user = {
+        email: 'a@b.com',
+        save,
+        passwordResetCode: null,
+        passwordResetCodeExpires: null,
+      };
+      mockRepo.findByEmail.mockResolvedValue(user);
+      mockEmail.sendPasswordResetEmail = jest.fn().mockResolvedValue(true);
+      await service.forgotPassword('a@b.com');
+      expect(user.passwordResetCode).toBeDefined();
+      expect(user.passwordResetCodeExpires).toBeInstanceOf(Date);
+      expect(save).toHaveBeenCalled();
+      expect(mockEmail.sendPasswordResetEmail).toHaveBeenCalledWith('a@b.com', expect.any(String));
     });
   });
 });

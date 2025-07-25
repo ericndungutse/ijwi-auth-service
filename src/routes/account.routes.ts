@@ -16,4 +16,8 @@ accountRouter.patch('/verify-email', (req: Request, res: Response, next: NextFun
   container.accountController.verifyEmail(req, res, next)
 );
 
+accountRouter.post('/forgot-password', (req: Request, res: Response, next: NextFunction) =>
+  container.accountController.forgotPassword(req, res, next)
+);
+
 module.exports = accountRouter;

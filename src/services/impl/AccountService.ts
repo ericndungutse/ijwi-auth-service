@@ -4,7 +4,7 @@ import { IAccountRepository } from '../../repository/IAccountRepository';
 import { ICreateAccountDto } from '../../dto/accountDtos';
 import { IEmailService } from '../interfaces/IEmailService';
 import { ApiError } from '../../dto/ApiError';
-import { hashDigitCode } from '../../utils/generateCode';
+import { hashDigitCode, generateSixDigitCode } from '../../utils/generateCode';
 
 export class AccountService implements IAccountService {
   private accountRepository: IAccountRepository;
@@ -51,5 +51,17 @@ export class AccountService implements IAccountService {
       return true;
     }
     throw new ApiError('Invalid code or already verified', 400);
+  }
+
+  async forgotPassword(email: string): Promise<void> {
+    const user = await this.accountRepository.findByEmail(email);
+    if (!user) {
+      throw new ApiError('User not found', 404);
+    }
+    const code = generateSixDigitCode();
+    user.passwordResetCode = hashDigitCode(code);
+    user.passwordResetCodeExpires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+    await user.save();
+    await this.emailService.sendPasswordResetEmail(user.email, String(code));
   }
 }

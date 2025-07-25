@@ -57,15 +57,15 @@ export class EmailService implements IEmailService {
   }
 
   async sendPasswordResetEmail(to: string, resetToken: string): Promise<void> {
-    const subject = 'Reset your password';
+    const subject = 'Your Password Reset Code';
     const body = `
       <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <h2 style="color: #333;">Password Reset Request</h2>
-        <p>You have requested to reset your password. Please use the token below:</p>
+        <h2 style="color: #333;">Password Reset</h2>
+        <p>You have requested to reset your password. Please use the code below to proceed:</p>
         <div style="background-color: #f5f5f5; padding: 20px; text-align: center; margin: 20px 0;">
-          <code style="background-color: #e9ecef; padding: 10px; border-radius: 4px; font-size: 14px; word-break: break-all;">${resetToken}</code>
+          <h1 style="color: #007bff; margin: 0; font-size: 32px; letter-spacing: 5px;">${resetToken}</h1>
         </div>
-        <p>This reset token will expire in 1 hour.</p>
+        <p>This password reset code will expire in 10 minutes.</p>
         <p>If you didn't request a password reset, please ignore this email and your password will remain unchanged.</p>
       </div>
     `;

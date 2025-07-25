@@ -5,7 +5,7 @@ import mongoose from 'mongoose';
 const bcrypt = require('bcrypt');
 import { generateSixDigitCode, hashDigitCode } from '../../utils/generateCode';
 
-const accountSchema = new mongoose.Schema<IAccountDocument>(
+const accountSchema = new mongoose.Schema(
   {
     email: {
       type: String,
@@ -38,6 +38,14 @@ const accountSchema = new mongoose.Schema<IAccountDocument>(
         type: Boolean,
         default: false,
       },
+    },
+    passwordResetCode: {
+      type: String,
+      default: null,
+    },
+    passwordResetCodeExpires: {
+      type: Date,
+      default: null,
     },
   },
   {

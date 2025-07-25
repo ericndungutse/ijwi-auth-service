@@ -12,6 +12,8 @@ export interface IAccountDocument extends Document {
     code: string | null;
     verified: boolean;
   };
+  passwordResetCode: string | null;
+  passwordResetCodeExpires: Date | null;
   comparePassword(candidatePassword: string): Promise<boolean>;
   generateJwt(): string;
   generateEmailVerificationCode(): number;

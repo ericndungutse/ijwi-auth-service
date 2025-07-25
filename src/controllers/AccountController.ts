@@ -130,4 +130,26 @@ export class AccountController {
       next(error);
     }
   }
+
+  async forgotPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { email } = req.body;
+      if (!email) {
+        const response: ApiResponse<null, { message: string }[]> = {
+          status: 'fail',
+          message: 'Email is required.',
+        };
+        res.status(400).json(response);
+        return;
+      }
+      await this.accountService.forgotPassword(email);
+      const response: ApiResponse<string, null> = {
+        status: 'success',
+        message: 'An email with a password reset code has been sent.',
+      };
+      res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

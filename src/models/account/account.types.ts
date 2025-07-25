@@ -9,9 +9,10 @@ export interface IAccountDocument extends Document {
   createdAt: Date;
   updatedAt: Date;
   emailVerification: {
-    code: number | null;
+    code: string | null;
     verified: boolean;
   };
   comparePassword(candidatePassword: string): Promise<boolean>;
   generateJwt(): string;
+  generateEmailVerificationCode(): number;
 }

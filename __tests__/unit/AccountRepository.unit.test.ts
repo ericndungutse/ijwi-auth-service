@@ -1,12 +1,16 @@
+import { AccountService } from './../../src/services/impl/AccountService';
 import { AccountRepository } from '../../src/repository/AccountRepository';
+import { hashDigitCode } from '../../src/utils/generateCode';
 
 describe('AccountRepository', () => {
   const mockModel = {
     create: jest.fn(),
     findOne: jest.fn(),
     save: jest.fn(),
+    emailService: jest.fn(),
   };
   const repo = new AccountRepository(mockModel as any);
+  const accountService = new AccountService(repo, mockModel.emailService as any);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -33,14 +37,13 @@ describe('AccountRepository', () => {
 
   it('verifyEmail returns false if user not found', async () => {
     mockModel.findOne.mockResolvedValue(null);
-    const result = await repo.verifyEmail('a@b.com', 123);
-    expect(result).toBe(false);
+    await expect(accountService.verifyEmail('a@b.com', 123)).rejects.toThrow('User not found');
   });
 
   it('verifyEmail sets verified true and saves if user found', async () => {
-    const user = { emailVerification: { verified: false }, save: jest.fn() };
+    const user = { emailVerification: { verified: false, code: hashDigitCode(123) }, save: jest.fn() };
     mockModel.findOne.mockResolvedValue(user);
-    const result = await repo.verifyEmail('a@b.com', 123);
+    const result = await accountService.verifyEmail('a@b.com', 123);
     expect(user.emailVerification.verified).toBe(true);
     expect(user.save).toHaveBeenCalled();
     expect(result).toBe(true);

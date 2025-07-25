@@ -3,7 +3,7 @@ const jwt = require('jsonwebtoken');
 
 import mongoose from 'mongoose';
 const bcrypt = require('bcrypt');
-import { generateSixDigitCode } from '../../utils/generateCode';
+import { generateSixDigitCode, hashDigitCode } from '../../utils/generateCode';
 
 const accountSchema = new mongoose.Schema<IAccountDocument>(
   {
@@ -60,17 +60,16 @@ accountSchema.pre('save', async function (this: IAccountDocument, next: any) {
   }
 });
 
-// Create emailVerification code on pre save for new users
-accountSchema.pre('save', function (this: IAccountDocument, next: any) {
-  if (this.isNew) {
-    this.emailVerification.code = generateSixDigitCode();
-  }
-  next();
-});
-
 // Method to compare password
 accountSchema.methods.comparePassword = async function (candidatePassword: string): Promise<boolean> {
   return bcrypt.compare(candidatePassword, this.password);
+};
+
+// Method to generate email verification code
+accountSchema.methods.generateEmailVerificationCode = function (): number {
+  const code = generateSixDigitCode();
+  this.emailVerification.code = hashDigitCode(code);
+  return code;
 };
 
 // Method to generate jwt

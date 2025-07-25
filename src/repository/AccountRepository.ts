@@ -11,26 +11,11 @@ export class AccountRepository implements IAccountRepository {
     this.Account = Account;
   }
 
-  getVerificationCode(user: IAccountDocument): number {
-    // Implement your code creation logic here
-    return user.emailVerification.code ?? 0;
-  }
-
   async createAccount(accountData: ICreateAccountDto): Promise<IAccountDocument> {
     return await this.Account.create(accountData);
   }
 
   async findByEmail(email: string): Promise<IAccountDocument | null> {
     return await this.Account.findOne({ email });
-  }
-
-  async verifyEmail(email: string, code: number): Promise<boolean> {
-    const user = await this.Account.findOne({ email, 'emailVerification.code': code });
-    if (!user) {
-      return false;
-    }
-    user.emailVerification.verified = true;
-    await user.save();
-    return true;
   }
 }

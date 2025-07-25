@@ -1,5 +1,6 @@
 import { AccountService } from '../../src/services/impl/AccountService';
 import { ApiError } from '../../src/dto/ApiError';
+import { hashDigitCode } from '../../src/utils/generateCode';
 
 describe('AccountService', () => {
   const mockRepo = {
@@ -30,10 +31,18 @@ describe('AccountService', () => {
       ).rejects.toThrow(ApiError);
     });
     it('calls repo and email service on success', async () => {
-      mockRepo.createAccount.mockResolvedValue({ email: 'a@b.com', emailVerification: { code: 123 } });
+      const mockUser = {
+        email: 'a@b.com',
+        emailVerification: { code: 123 },
+        generateEmailVerificationCode: jest.fn().mockReturnValue(123),
+        save: jest.fn().mockResolvedValue(true),
+      };
+      mockRepo.createAccount.mockResolvedValue(mockUser);
       mockRepo.getVerificationCode.mockReturnValue(123);
       await service.createUser({ userName: 'a', email: 'a@b.com', password: 'pass', confirmPassword: 'pass' });
       expect(mockRepo.createAccount).toHaveBeenCalled();
+      expect(mockUser.generateEmailVerificationCode).toHaveBeenCalled();
+      expect(mockUser.save).toHaveBeenCalled();
       expect(mockEmail.sendVerificationEmail).toHaveBeenCalledWith('a@b.com', 123);
     });
   });
@@ -60,10 +69,22 @@ describe('AccountService', () => {
 
   describe('verifyEmail', () => {
     it('calls repo.verifyEmail and returns result', async () => {
-      mockRepo.verifyEmail.mockResolvedValue(true);
-      const result = await service.verifyEmail('a@b.com', 123);
+      const code = 123;
+      const mockUser = {
+        emailVerification: { code: hashDigitCode(code), verified: false },
+        save: jest.fn().mockResolvedValue(true),
+      };
+      mockRepo.findByEmail.mockResolvedValue(mockUser);
+      const result = await service.verifyEmail('a@b.com', code);
       expect(result).toBe(true);
-      expect(mockRepo.verifyEmail).toHaveBeenCalledWith('a@b.com', 123);
+      expect(mockUser.save).toHaveBeenCalled();
+    });
+    it('throws error if code is invalid or already verified', async () => {
+      mockRepo.findByEmail.mockResolvedValue({
+        emailVerification: { code: hashDigitCode(123), verified: true },
+        save: jest.fn().mockResolvedValue(true),
+      });
+      await expect(service.verifyEmail('a@b.com', 999999)).rejects.toThrow('Invalid code or already verified');
     });
   });
 });

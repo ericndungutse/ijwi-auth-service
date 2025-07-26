@@ -1,5 +1,5 @@
-# Node.js
-node_modules/
+# Node.js - exclude dev dependencies only
+# node_modules/ - commented out to allow copying production dependencies
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*

@@ -1,23 +1,17 @@
-# Simplified Dockerfile for ijwi-auth-service - copying local dependencies
-
-FROM node:20-alpine AS production
+# Dockerfile for ijwi-auth-service
+FROM node:20-alpine
 
 # Create app directory
 WORKDIR /app
 
-# Copy package files first
-COPY package*.json ./
-
-# Create non-root user for security first
+# Create non-root user for security
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodeuser -u 1001
 
-# Copy the pre-built files directly
+# Copy package files and pre-built application
+COPY package*.json ./
 COPY dist/ ./dist/
-
-# Install only the runtime dependencies we know are needed
-RUN npm init -y && \
-    npm install express@^4.21.2 mongoose@^8.16.4 bcrypt@^6.0.0 jsonwebtoken@^9.0.2 nodemailer@^7.0.5 dotenv@^17.2.0
+COPY node_modules/ ./node_modules/
 
 # Change ownership of the app directory to nodeuser
 RUN chown -R nodeuser:nodejs /app

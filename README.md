@@ -13,12 +13,14 @@ A Node.js authentication service built with Express, TypeScript, and MongoDB.
 - Health check endpoint
 - CORS support
 - Graceful shutdown handling
+- **Docker support for containerized deployment**
+- Production-ready multi-stage builds
 
 ## Prerequisites
 
-- Node.js (v16 or higher)
-- MongoDB Atlas account (for cloud database)
-- npm or yarn package manager
+- Node.js (v16 or higher) **OR** Docker
+- MongoDB Atlas account (for cloud database) **OR** local MongoDB instance
+- npm or yarn package manager (if not using Docker)
 
 ## Setup
 
@@ -51,6 +53,62 @@ A Node.js authentication service built with Express, TypeScript, and MongoDB.
 
 ## Running the Application
 
+### Docker (Recommended)
+
+The easiest way to run the application is using Docker:
+
+#### Building the Docker Image
+
+```bash
+# Build the Docker image
+docker build -t ijwi-auth-service .
+
+# Run the container with environment variables
+docker run -d \
+  -p 3000:3000 \
+  -e MONGODB_URI="your-mongodb-connection-string" \
+  -e EMAIL_USER="your-email@example.com" \
+  -e EMAIL_PASS="your-email-password" \
+  -e JWT_SECRET="your-jwt-secret" \
+  --name ijwi-auth-service \
+  ijwi-auth-service
+```
+
+#### Using Docker Compose (Optional)
+
+For a complete setup with MongoDB, you can create a `docker-compose.yml`:
+
+```yaml
+version: '3.8'
+services:
+  auth-service:
+    build: .
+    ports:
+      - "3000:3000"
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/ijwi-auth
+      - EMAIL_USER=your-email@example.com
+      - EMAIL_PASS=your-email-password
+      - JWT_SECRET=your-jwt-secret
+    depends_on:
+      - mongo
+    
+  mongo:
+    image: mongo:7
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:
+```
+
+Then run:
+```bash
+docker-compose up -d
+```
+
 ### Development Mode
 
 ```bash
@@ -73,6 +131,13 @@ npm start
 - `npm run lint` - Run ESLint
 - `npm run lint:fix` - Run ESLint with auto-fix
 - `npm run format` - Format code with Prettier
+- `npm run test` - Run tests with coverage
+
+### Docker Commands
+
+- `docker build -t ijwi-auth-service .` - Build the Docker image
+- `docker run -p 3000:3000 ijwi-auth-service` - Run the container
+- `docker-compose up -d` - Run with MongoDB using Docker Compose
 
 ## API Endpoints
 

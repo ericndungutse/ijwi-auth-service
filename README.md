@@ -18,7 +18,7 @@ A Node.js authentication service built with Express, TypeScript, and MongoDB.
 
 ## Prerequisites
 
-- Node.js (v16 or higher) **OR** Docker
+- Node.js (v22 or higher) **OR** Docker
 - MongoDB Atlas account (for cloud database) **OR** local MongoDB instance
 - npm or yarn package manager (if not using Docker)
 

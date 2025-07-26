@@ -1,11 +1,11 @@
-# Node.js - exclude dev dependencies only
-# node_modules/ - commented out to allow copying production dependencies
+# Node.js dependencies - will be installed in container
+node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
-# Build outputs - only exclude in specific contexts
-# dist/ - commented out to allow copying built files
+# Build outputs - will be built in container
+dist/
 coverage/
 
 # Environment files

@@ -1,5 +1,26 @@
 # Dockerfile for ijwi-auth-service
-FROM node:20-alpine
+
+# Build stage
+FROM node:22-alpine AS builder
+
+# Create app directory
+WORKDIR /app
+
+# Copy package files
+COPY package*.json ./
+COPY tsconfig.json ./
+
+# Install all dependencies (including dev dependencies for building)
+RUN npm config set strict-ssl false && npm ci
+
+# Copy source code
+COPY src/ ./src/
+
+# Build the TypeScript application
+RUN npm run build
+
+# Production stage
+FROM node:22-alpine AS production
 
 # Create app directory
 WORKDIR /app
@@ -8,10 +29,14 @@ WORKDIR /app
 RUN addgroup -g 1001 -S nodejs && \
     adduser -S nodeuser -u 1001
 
-# Copy package files and pre-built application
+# Copy package files
 COPY package*.json ./
-COPY dist/ ./dist/
-COPY node_modules/ ./node_modules/
+
+# Install only production dependencies
+RUN npm config set strict-ssl false && npm ci --only=production && npm cache clean --force
+
+# Copy built application from builder stage
+COPY --from=builder /app/dist ./dist/
 
 # Change ownership of the app directory to nodeuser
 RUN chown -R nodeuser:nodejs /app

@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import { describe, it, expect, beforeAll, afterAll } from '@jest/globals';
+import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
 import supertest from 'supertest';
 import { App } from '../src/app';
 
@@ -50,5 +50,190 @@ describe('App-level routes and middleware', () => {
       .set('Content-Type', 'application/json')
       .send('{ "email": "badjson" '); // missing closing brace
     expect([400, 500]).toContain(response.status); // Express may return 400 or 500
+  });
+
+  describe('CORS middleware', () => {
+    it('should allow requests from configured origins', async () => {
+      process.env.CORS_ORIGIN = 'http://localhost:3000,https://example.com';
+      const app = new App().getApp();
+
+      const response = await supertest(app).get('/health').set('Origin', 'https://example.com');
+
+      expect(response.headers['access-control-allow-origin']).toBe('https://example.com');
+    });
+
+    it('should not set CORS origin for non-allowed origins', async () => {
+      process.env.CORS_ORIGIN = 'http://localhost:3000';
+      const app = new App().getApp();
+
+      const response = await supertest(app).get('/health').set('Origin', 'https://malicious.com');
+
+      expect(response.headers['access-control-allow-origin']).toBeUndefined();
+    });
+
+    it('should use default origins when CORS_ORIGIN is not set', async () => {
+      delete process.env.CORS_ORIGIN;
+      const app = new App().getApp();
+
+      const response = await supertest(app).get('/health').set('Origin', 'http://localhost:3000');
+
+      expect(response.headers['access-control-allow-origin']).toBe('http://localhost:3000');
+    });
+
+    it('should handle requests without origin header', async () => {
+      const app = new App().getApp();
+
+      const response = await supertest(app).get('/health');
+
+      expect(response.status).toBe(200);
+      expect(response.headers['access-control-allow-methods']).toBeDefined();
+      expect(response.headers['access-control-allow-headers']).toBeDefined();
+      expect(response.headers['access-control-allow-credentials']).toBe('true');
+    });
+
+    it('should handle OPTIONS requests correctly', async () => {
+      const app = new App().getApp();
+
+      const response = await supertest(app).options('/health').set('Origin', 'http://localhost:3000');
+
+      expect(response.status).toBe(200);
+      expect(response.headers['access-control-allow-origin']).toBe('http://localhost:3000');
+    });
+  });
+
+  describe('Request logging middleware', () => {
+    it('should log request details', async () => {
+      const consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+      const app = new App().getApp();
+
+      await supertest(app).get('/health');
+
+      expect(consoleSpy).toHaveBeenCalledWith(
+        expect.stringMatching(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z - GET \/health$/)
+      );
+
+      consoleSpy.mockRestore();
+    });
+  });
+
+  describe('404 handler', () => {
+    it('should return proper 404 response for unknown routes', async () => {
+      const response = await supertest(app).get('/unknown/route');
+
+      expect(response.status).toBe(404);
+      expect(response.body.status).toBe('fail');
+      expect(response.body.message).toBe('Route /unknown/route not found');
+      expect(response.body.data).toBeNull();
+      expect(response.body.errors).toEqual([{ message: 'Route /unknown/route not found', field: 'url' }]);
+    });
+
+    it('should handle different HTTP methods for unknown routes', async () => {
+      const response = await supertest(app).post('/unknown/route');
+
+      expect(response.status).toBe(404);
+      expect(response.body.message).toBe('Route /unknown/route not found');
+    });
+  });
+});
+
+describe('App class methods', () => {
+  describe('connectToDatabase', () => {
+    let originalEnv: NodeJS.ProcessEnv;
+    let consoleSpy: any;
+
+    beforeEach(() => {
+      originalEnv = { ...process.env };
+      consoleSpy = jest.spyOn(console, 'log').mockImplementation(() => {});
+    });
+
+    afterEach(() => {
+      process.env = originalEnv;
+      consoleSpy.mockRestore();
+    });
+
+    it('should connect to database successfully', async () => {
+      const app = new App();
+      process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
+
+      // Mock mongoose.connect to resolve successfully
+      const mockConnect = jest.spyOn(mongoose, 'connect').mockResolvedValue(mongoose);
+
+      await app.connectToDatabase();
+
+      expect(mockConnect).toHaveBeenCalledWith('mongodb://localhost:27017/test');
+      expect(consoleSpy).toHaveBeenCalledWith('✅ Connected to MongoDB successfully');
+
+      mockConnect.mockRestore();
+    });
+
+    it('should handle missing MONGODB_URI by calling process.exit', async () => {
+      const app = new App();
+      delete process.env.MONGODB_URI;
+
+      const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+
+      await app.connectToDatabase();
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith('❌ Failed to connect to MongoDB:', expect.any(Error));
+      expect(processExitSpy).toHaveBeenCalledWith(1);
+
+      processExitSpy.mockRestore();
+      consoleErrorSpy.mockRestore();
+    });
+
+    it('should handle database connection errors', async () => {
+      const app = new App();
+      process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
+
+      const mockConnect = jest.spyOn(mongoose, 'connect').mockRejectedValue(new Error('Connection failed'));
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const processExitSpy = jest.spyOn(process, 'exit').mockImplementation(() => undefined as never);
+
+      await app.connectToDatabase();
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith('❌ Failed to connect to MongoDB:', expect.any(Error));
+      expect(processExitSpy).toHaveBeenCalledWith(1);
+
+      mockConnect.mockRestore();
+      consoleErrorSpy.mockRestore();
+      processExitSpy.mockRestore();
+    });
+
+    it('should set up database event handlers', async () => {
+      const app = new App();
+      process.env.MONGODB_URI = 'mongodb://localhost:27017/test';
+
+      const mockConnect = jest.spyOn(mongoose, 'connect').mockResolvedValue(mongoose);
+      const consoleErrorSpy = jest.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleWarnSpy = jest.spyOn(console, 'warn').mockImplementation(() => {});
+
+      await app.connectToDatabase();
+
+      // Simulate database events
+      mongoose.connection.emit('error', new Error('DB Error'));
+      mongoose.connection.emit('disconnected');
+      mongoose.connection.emit('reconnected');
+
+      expect(consoleErrorSpy).toHaveBeenCalledWith('❌ MongoDB connection error:', expect.any(Error));
+      expect(consoleWarnSpy).toHaveBeenCalledWith('⚠️ MongoDB disconnected');
+      expect(consoleSpy).toHaveBeenCalledWith('✅ MongoDB reconnected');
+
+      mockConnect.mockRestore();
+      consoleErrorSpy.mockRestore();
+      consoleWarnSpy.mockRestore();
+    });
+  });
+
+  describe('getApp', () => {
+    it('should return the Express application instance', () => {
+      const app = new App();
+      const expressApp = app.getApp();
+
+      expect(expressApp).toBeDefined();
+      expect(typeof expressApp.get).toBe('function');
+      expect(typeof expressApp.post).toBe('function');
+      expect(typeof expressApp.use).toBe('function');
+    });
   });
 });

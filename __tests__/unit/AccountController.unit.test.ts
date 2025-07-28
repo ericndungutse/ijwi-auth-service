@@ -188,6 +188,79 @@ describe('AccountController', () => {
         })
       );
     });
+
+    it('should handle different JWT_EXPIRES_IN formats for cookie maxAge', async () => {
+      // Test hours format
+      process.env.JWT_EXPIRES_IN = '2h';
+      mockService.signIn.mockResolvedValue({
+        isActive: true,
+        emailVerification: { verified: true },
+        _id: 'id',
+        email: 'a@b.com',
+        role: 'user',
+        createdAt: new Date(),
+        generateJwt: () => 'token',
+      });
+      const req = mockReq({ email: 'a@b.com', password: 'pass' });
+      req.headers = { 'x-client-type': 'web' };
+      const res = mockRes();
+      await controller.signIn(req, res, mockNext);
+      expect(res.cookie).toHaveBeenCalledWith(
+        'jwt',
+        'token',
+        expect.objectContaining({
+          maxAge: 2 * 60 * 60 * 1000, // 2 hours in milliseconds
+        })
+      );
+    });
+
+    it('should handle minutes format in JWT_EXPIRES_IN', async () => {
+      process.env.JWT_EXPIRES_IN = '30m';
+      mockService.signIn.mockResolvedValue({
+        isActive: true,
+        emailVerification: { verified: true },
+        _id: 'id',
+        email: 'a@b.com',
+        role: 'user',
+        createdAt: new Date(),
+        generateJwt: () => 'token',
+      });
+      const req = mockReq({ email: 'a@b.com', password: 'pass' });
+      req.headers = { 'x-client-type': 'web' };
+      const res = mockRes();
+      await controller.signIn(req, res, mockNext);
+      expect(res.cookie).toHaveBeenCalledWith(
+        'jwt',
+        'token',
+        expect.objectContaining({
+          maxAge: 30 * 60 * 1000, // 30 minutes in milliseconds
+        })
+      );
+    });
+
+    it('should handle seconds format in JWT_EXPIRES_IN', async () => {
+      process.env.JWT_EXPIRES_IN = '3600s';
+      mockService.signIn.mockResolvedValue({
+        isActive: true,
+        emailVerification: { verified: true },
+        _id: 'id',
+        email: 'a@b.com',
+        role: 'user',
+        createdAt: new Date(),
+        generateJwt: () => 'token',
+      });
+      const req = mockReq({ email: 'a@b.com', password: 'pass' });
+      req.headers = { 'x-client-type': 'web' };
+      const res = mockRes();
+      await controller.signIn(req, res, mockNext);
+      expect(res.cookie).toHaveBeenCalledWith(
+        'jwt',
+        'token',
+        expect.objectContaining({
+          maxAge: 3600 * 1000, // 3600 seconds in milliseconds
+        })
+      );
+    });
   });
 
   describe('verifyEmail', () => {
@@ -211,6 +284,14 @@ describe('AccountController', () => {
       await controller.verifyEmail(req, res, mockNext);
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ status: 'success' }));
+    });
+    it('should call next(error) when service throws error', async () => {
+      const error = new Error('Service error');
+      mockService.verifyEmail.mockRejectedValue(error);
+      const req = mockReq({ email: 'a@b.com', code: 123 });
+      const res = mockRes();
+      await controller.verifyEmail(req, res, mockNext);
+      expect(mockNext).toHaveBeenCalledWith(error);
     });
   });
 

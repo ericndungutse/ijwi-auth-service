@@ -32,7 +32,7 @@ export interface IAccountDto {
     role: 'admin' | 'user';
     isActive: boolean;
     createdAt: Date;
-    token: string; // JWT token
+    token?: string; // JWT token (optional for web clients)
   };
 }
 

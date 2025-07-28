@@ -1,3 +1,5 @@
+[![ci](https://github.com/ericndungutse/ijwi-auth-service/actions/workflows/ci.yml/badge.svg)](https://github.com/ericndungutse/ijwi-auth-service/actions/workflows/ci.yml)
+
 # Auth Service
 
 A Node.js authentication service built with Express, TypeScript, and MongoDB.
@@ -147,6 +149,36 @@ All errors are returned in a consistent JSON format:
 - Database connections are automatically managed
 - All API responses follow a consistent structure
 
+## CI/CD Pipeline
+
+This project includes a simple GitHub Actions workflow for continuous integration:
+
+### CI Workflow
+
+The CI workflow (`.github/workflows/ci.yml`) runs on:
+
+- Push to `main` and `develop` branches
+- Pull requests to `main` and `develop` branches
+
+**What it does:**
+
+- ✅ Installs dependencies
+- ✅ Runs all tests with coverage
+- ✅ Uploads coverage reports as GitHub artifacts
+
+### Coverage Reports
+
+Test coverage reports are automatically generated and uploaded as GitHub artifacts. You can download and view them in the GitHub Actions tab after each run.
+
+### Local Testing
+
+Before pushing, run tests locally:
+
+```bash
+npm install
+npm test
+```
+
 ## Next Steps
 
 To complete the authentication service, consider implementing:
@@ -156,7 +188,6 @@ To complete the authentication service, consider implementing:
 - Email verification
 - Rate limiting
 - Logging framework
-- Unit and integration tests
 - API documentation with Swagger/OpenAPI
 
 ## Troubleshooting

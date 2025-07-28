@@ -1,7 +1,7 @@
-import { NextFunction, Request, Response } from 'express';
+import { Request, Response, NextFunction } from 'express';
 import { IAccountService } from '../services/interfaces/IAccountService';
-import { ApiResponse } from '../dto';
-import { IAccountDto, ICreateAccountDto } from '../dto/accountDtos';
+import { ICreateAccountDto, IAccountDto } from '../dto/accountDtos';
+import { ApiResponse } from '../dto/ApiResponse';
 import { ApiError } from '../dto/ApiError';
 
 export class AccountController {
@@ -36,6 +36,10 @@ export class AccountController {
       next(new ApiError('Email and password are required', 401));
       return;
     }
+
+    // Check for client type header
+    const clientType = req.headers['x-client-type'] as 'mobile' | 'web' | undefined;
+
     const user = await this.accountService.signIn(email, password);
 
     if (!user) {
@@ -80,23 +84,72 @@ export class AccountController {
 
     const token: string = await user.generateJwt();
 
-    const userDto: IAccountDto = {
-      user: {
-        id: user._id.toString(),
-        email: user.email,
-        role: user.role,
-        isActive: user.isActive,
-        createdAt: user.createdAt,
-        token: token,
-      },
-    };
+    if (clientType === 'mobile') {
+      const userDto: IAccountDto = {
+        user: {
+          id: user._id.toString(),
+          email: user.email,
+          role: user.role,
+          isActive: user.isActive,
+          createdAt: user.createdAt,
+          token: token,
+        },
+      };
 
-    const response: ApiResponse<IAccountDto, null> = {
-      status: 'success',
-      message: 'User signed in successfully',
-      data: userDto,
-    };
-    res.status(200).json(response);
+      const response: ApiResponse<IAccountDto, null> = {
+        status: 'success',
+        message: 'User signed in successfully',
+        data: userDto,
+      };
+      res.status(200).json(response);
+      return;
+    }
+
+    if (clientType === 'web' || clientType === undefined) {
+      // For web clients, set JWT in HttpOnly cookie
+      // Calculate maxAge based on JWT_EXPIRES_IN
+      let maxAge = 24 * 60 * 60 * 1000; // Default to 24 hours
+      if (process.env.JWT_EXPIRES_IN) {
+        const expiresIn = process.env.JWT_EXPIRES_IN;
+        if (expiresIn.includes('d')) {
+          maxAge = Number(expiresIn.replace('d', '')) * 24 * 60 * 60 * 1000;
+        } else if (expiresIn.includes('h')) {
+          maxAge = Number(expiresIn.replace('h', '')) * 60 * 60 * 1000;
+        } else if (expiresIn.includes('m')) {
+          maxAge = Number(expiresIn.replace('m', '')) * 60 * 1000;
+        } else if (expiresIn.includes('s')) {
+          maxAge = Number(expiresIn.replace('s', '')) * 1000;
+        }
+      }
+
+      res.cookie('jwt', token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        maxAge,
+      });
+
+      const userDto: IAccountDto = {
+        user: {
+          id: user._id.toString(),
+          email: user.email,
+          role: user.role,
+          isActive: user.isActive,
+          createdAt: user.createdAt,
+        },
+      };
+
+      const response: ApiResponse<IAccountDto, null> = {
+        status: 'success',
+        message: 'User signed in successfully',
+        data: userDto,
+      };
+      res.status(200).json(response);
+      return;
+    }
+
+    next(new ApiError('Invalid client type. Must be "mobile" or "web"', 400));
+    return;
   }
 
   async verifyEmail(req: Request, res: Response, next: NextFunction): Promise<void> {

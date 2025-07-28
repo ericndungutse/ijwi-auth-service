@@ -1,6 +1,7 @@
 const express = require('express');
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
+const cookieParser = require('cookie-parser');
 const accountRouter = require('./routes/account.routes');
 
 import { Application, Request, Response, NextFunction } from 'express';
@@ -25,6 +26,9 @@ export class App {
     this.app.use(express.json({ limit: '10mb' }));
     this.app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 
+    // Cookie parser middleware
+    this.app.use(cookieParser());
+
     // CORS middleware
     this.app.use((req: Request, res: Response, next: NextFunction) => {
       const allowedOrigins = process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'];
@@ -35,8 +39,8 @@ export class App {
       }
 
       res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
-      //   res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-      //   res.setHeader('Access-Control-Allow-Credentials', 'true');
+      res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, x-client-type');
+      res.setHeader('Access-Control-Allow-Credentials', 'true');
 
       if (req.method === 'OPTIONS') {
         res.sendStatus(200);

@@ -112,7 +112,72 @@ describe('Signin', () => {
       role: 'user',
       isActive: true,
     });
+    // For default behavior (no client type), token should be in cookie, not response body
+    expect(response.body.data.user.token).toBeUndefined();
+    expect(response.headers['set-cookie']).toBeDefined();
+    expect(response.headers['set-cookie']).toHaveLength(1);
+    expect(response.headers['set-cookie'][0]).toMatch(/jwt=/);
+  });
+
+  it('should sign in successfully for mobile client and return token in response', async () => {
+    const response = await supertest(app).post('/api/v1/auth/signin').set('x-client-type', 'mobile').send(baseUser);
+
+    expect(response.status).toBe(200);
+    expect(response.body.status).toBe('success');
+    expect(response.body.message).toBe('User signed in successfully');
+    expect(response.body.data.user).toMatchObject({
+      email: baseUser.email,
+      role: 'user',
+      isActive: true,
+    });
     expect(response.body.data.user.token).toBeDefined();
+    expect(response.body.data.user.token).toBeTruthy();
+  });
+
+  it('should sign in successfully for web client and set token in cookie', async () => {
+    const response = await supertest(app).post('/api/v1/auth/signin').set('x-client-type', 'web').send(baseUser);
+
+    expect(response.status).toBe(200);
+    expect(response.body.status).toBe('success');
+    expect(response.body.message).toBe('User signed in successfully');
+    expect(response.body.data.user).toMatchObject({
+      email: baseUser.email,
+      role: 'user',
+      isActive: true,
+    });
+    // For web clients, token should not be in response body
+    expect(response.body.data.user.token).toBeUndefined();
+    // Check that cookie is set
+    expect(response.headers['set-cookie']).toBeDefined();
+    expect(response.headers['set-cookie']).toHaveLength(1);
+    expect(response.headers['set-cookie'][0]).toMatch(/jwt=/);
+  });
+
+  it('should sign in successfully for undefined client type and set token in cookie (default web behavior)', async () => {
+    const response = await supertest(app).post('/api/v1/auth/signin').send(baseUser);
+
+    expect(response.status).toBe(200);
+    expect(response.body.status).toBe('success');
+    expect(response.body.message).toBe('User signed in successfully');
+    expect(response.body.data.user).toMatchObject({
+      email: baseUser.email,
+      role: 'user',
+      isActive: true,
+    });
+    // For undefined client type, token should not be in response body
+    expect(response.body.data.user.token).toBeUndefined();
+    // Check that cookie is set
+    expect(response.headers['set-cookie']).toBeDefined();
+    expect(response.headers['set-cookie']).toHaveLength(1);
+    expect(response.headers['set-cookie'][0]).toMatch(/jwt=/);
+  });
+
+  it('should return 400 for invalid client type', async () => {
+    const response = await supertest(app).post('/api/v1/auth/signin').set('x-client-type', 'invalid').send(baseUser);
+
+    expect(response.status).toBe(400);
+    expect(response.body.status).toBe('fail');
+    expect(response.body.message).toBe('Invalid client type. Must be "mobile" or "web"');
   });
 
   it('should fail with invalid email', async () => {

@@ -10,11 +10,12 @@ describe('AccountController', () => {
   };
   const controller = new AccountController(mockService as any);
 
-  const mockReq = (body: any = {}) => ({ body }) as any;
+  const mockReq = (body: any = {}) => ({ body, headers: {} }) as any;
   const mockRes = () => {
     const res: any = {};
     res.status = jest.fn().mockReturnValue(res);
     res.json = jest.fn().mockReturnValue(res);
+    res.cookie = jest.fn().mockReturnValue(res);
     return res;
   };
   const mockNext = jest.fn();
@@ -81,6 +82,111 @@ describe('AccountController', () => {
       await controller.signIn(req, res, mockNext);
       expect(res.status).toHaveBeenCalledWith(200);
       expect(res.json).toHaveBeenCalledWith(expect.objectContaining({ status: 'success' }));
+    });
+
+    it('should return 200 and include token in response for mobile client', async () => {
+      mockService.signIn.mockResolvedValue({
+        isActive: true,
+        emailVerification: { verified: true },
+        _id: 'id',
+        email: 'a@b.com',
+        role: 'user',
+        createdAt: new Date(),
+        generateJwt: () => 'mobile-token',
+      });
+      const req = mockReq({ email: 'a@b.com', password: 'pass' });
+      req.headers = { 'x-client-type': 'mobile' };
+      const res = mockRes();
+      await controller.signIn(req, res, mockNext);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'success',
+          data: expect.objectContaining({
+            user: expect.objectContaining({
+              token: 'mobile-token',
+            }),
+          }),
+        })
+      );
+    });
+
+    it('should return 200 and set cookie for web client without token in response', async () => {
+      mockService.signIn.mockResolvedValue({
+        isActive: true,
+        emailVerification: { verified: true },
+        _id: 'id',
+        email: 'a@b.com',
+        role: 'user',
+        createdAt: new Date(),
+        generateJwt: () => 'web-token',
+      });
+      const req = mockReq({ email: 'a@b.com', password: 'pass' });
+      req.headers = { 'x-client-type': 'web' };
+      const res = mockRes();
+      await controller.signIn(req, res, mockNext);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.cookie).toHaveBeenCalledWith('jwt', 'web-token', expect.any(Object));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'success',
+          data: expect.objectContaining({
+            user: expect.not.objectContaining({
+              token: expect.anything(),
+            }),
+          }),
+        })
+      );
+    });
+
+    it('should return 200 and set cookie for undefined client type (default web behavior)', async () => {
+      mockService.signIn.mockResolvedValue({
+        isActive: true,
+        emailVerification: { verified: true },
+        _id: 'id',
+        email: 'a@b.com',
+        role: 'user',
+        createdAt: new Date(),
+        generateJwt: () => 'default-token',
+      });
+      const req = mockReq({ email: 'a@b.com', password: 'pass' });
+      req.headers = {};
+      const res = mockRes();
+      await controller.signIn(req, res, mockNext);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.cookie).toHaveBeenCalledWith('jwt', 'default-token', expect.any(Object));
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'success',
+          data: expect.objectContaining({
+            user: expect.not.objectContaining({
+              token: expect.anything(),
+            }),
+          }),
+        })
+      );
+    });
+
+    it('should return 400 for invalid client type', async () => {
+      mockService.signIn.mockResolvedValue({
+        isActive: true,
+        emailVerification: { verified: true },
+        _id: 'id',
+        email: 'a@b.com',
+        role: 'user',
+        createdAt: new Date(),
+        generateJwt: () => 'token',
+      });
+      const req = mockReq({ email: 'a@b.com', password: 'pass' });
+      req.headers = { 'x-client-type': 'invalid' };
+      const res = mockRes();
+      await controller.signIn(req, res, mockNext);
+      expect(mockNext).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Invalid client type. Must be "mobile" or "web"',
+          statusCode: 400,
+        })
+      );
     });
   });
 

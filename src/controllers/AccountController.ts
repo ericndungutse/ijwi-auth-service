@@ -107,11 +107,26 @@ export class AccountController {
 
     if (clientType === 'web' || clientType === undefined) {
       // For web clients, set JWT in HttpOnly cookie
+      // Calculate maxAge based on JWT_EXPIRES_IN
+      let maxAge = 24 * 60 * 60 * 1000; // Default to 24 hours
+      if (process.env.JWT_EXPIRES_IN) {
+        const expiresIn = process.env.JWT_EXPIRES_IN;
+        if (expiresIn.includes('d')) {
+          maxAge = Number(expiresIn.replace('d', '')) * 24 * 60 * 60 * 1000;
+        } else if (expiresIn.includes('h')) {
+          maxAge = Number(expiresIn.replace('h', '')) * 60 * 60 * 1000;
+        } else if (expiresIn.includes('m')) {
+          maxAge = Number(expiresIn.replace('m', '')) * 60 * 1000;
+        } else if (expiresIn.includes('s')) {
+          maxAge = Number(expiresIn.replace('s', '')) * 1000;
+        }
+      }
+
       res.cookie('jwt', token, {
         httpOnly: true,
         secure: true,
         sameSite: 'none',
-        maxAge: Number(process.env.JWT_EXPIRES_IN!.replace('d', '')) * 24 * 60 * 60 * 1000,
+        maxAge,
       });
 
       const userDto: IAccountDto = {

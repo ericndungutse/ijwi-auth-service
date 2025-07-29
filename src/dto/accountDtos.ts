@@ -38,3 +38,10 @@ export interface IAccountDto {
 
 // For updating users (partial)
 // export type IAccountUpdateDto = Partial<ICreateAccountDto>;
+
+export interface IResetPasswordDto {
+  email: string;
+  resetCode: number;
+  newPassword: string;
+  confirmPassword: string;
+}

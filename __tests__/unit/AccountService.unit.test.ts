@@ -111,4 +111,121 @@ describe('AccountService', () => {
       expect(mockEmail.sendPasswordResetEmail).toHaveBeenCalledWith('a@b.com', expect.any(String));
     });
   });
+
+  describe('resetPassword', () => {
+    it('throws if email is missing', async () => {
+      await expect(service.resetPassword('', 123456, 'newpass', 'newpass')).rejects.toThrow(ApiError);
+    });
+
+    it('throws if resetCode is missing', async () => {
+      await expect(service.resetPassword('a@b.com', 0, 'newpass', 'newpass')).rejects.toThrow(ApiError);
+    });
+
+    it('throws if newPassword is missing', async () => {
+      await expect(service.resetPassword('a@b.com', 123456, '', 'newpass')).rejects.toThrow(ApiError);
+    });
+
+    it('throws if confirmPassword is missing', async () => {
+      await expect(service.resetPassword('a@b.com', 123456, 'newpass', '')).rejects.toThrow(ApiError);
+    });
+
+    it('throws if passwords do not match', async () => {
+      await expect(service.resetPassword('a@b.com', 123456, 'newpass', 'differentpass')).rejects.toThrow(ApiError);
+    });
+
+    it('throws if user not found', async () => {
+      mockRepo.findByEmail.mockResolvedValue(null);
+      await expect(service.resetPassword('notfound@b.com', 123456, 'newpass', 'newpass')).rejects.toThrow(ApiError);
+    });
+
+    it('throws if no reset code found', async () => {
+      const user = {
+        email: 'a@b.com',
+        passwordResetCode: null,
+        passwordResetCodeExpires: null,
+      };
+      mockRepo.findByEmail.mockResolvedValue(user);
+      await expect(service.resetPassword('a@b.com', 123456, 'newpass', 'newpass')).rejects.toThrow(ApiError);
+    });
+
+    it('throws if reset code expired', async () => {
+      const user = {
+        email: 'a@b.com',
+        passwordResetCode: 'hashedcode',
+        passwordResetCodeExpires: new Date(Date.now() - 1000), // expired
+      };
+      mockRepo.findByEmail.mockResolvedValue(user);
+      await expect(service.resetPassword('a@b.com', 123456, 'newpass', 'newpass')).rejects.toThrow(ApiError);
+    });
+
+    it('throws if invalid reset code', async () => {
+      const user = {
+        email: 'a@b.com',
+        passwordResetCode: 'hashedcode',
+        passwordResetCodeExpires: new Date(Date.now() + 10000), // not expired
+        save: jest.fn().mockResolvedValue(true),
+      };
+      mockRepo.findByEmail.mockResolvedValue(user);
+      await expect(service.resetPassword('a@b.com', 123456, 'newpass', 'newpass')).rejects.toThrow(ApiError);
+    });
+
+    it('resets password successfully with valid code', async () => {
+      const code = 123456;
+      const hashedCode = require('crypto').createHash('sha256').update(String(code)).digest('hex');
+      const save = jest.fn().mockResolvedValue(true);
+      const user = {
+        email: 'a@b.com',
+        password: 'oldpassword',
+        passwordResetCode: hashedCode,
+        passwordResetCodeExpires: new Date(Date.now() + 10000), // not expired
+        save,
+      };
+      mockRepo.findByEmail.mockResolvedValue(user);
+      await service.resetPassword('a@b.com', code, 'newpassword', 'newpassword');
+      expect(user.password).toBe('newpassword');
+      expect(user.passwordResetCode).toBeNull();
+      expect(user.passwordResetCodeExpires).toBeNull();
+      expect(save).toHaveBeenCalled();
+    });
+
+    it('resets password with special characters', async () => {
+      const code = 123456;
+      const hashedCode = require('crypto').createHash('sha256').update(String(code)).digest('hex');
+      const save = jest.fn().mockResolvedValue(true);
+      const user = {
+        email: 'a@b.com',
+        password: 'oldpassword',
+        passwordResetCode: hashedCode,
+        passwordResetCodeExpires: new Date(Date.now() + 10000),
+        save,
+      };
+      mockRepo.findByEmail.mockResolvedValue(user);
+      const newPassword = 'NewP@ssw0rd!';
+      await service.resetPassword('a@b.com', code, newPassword, newPassword);
+      expect(user.password).toBe(newPassword);
+      expect(user.passwordResetCode).toBeNull();
+      expect(user.passwordResetCodeExpires).toBeNull();
+      expect(save).toHaveBeenCalled();
+    });
+
+    it('resets password with minimum length', async () => {
+      const code = 123456;
+      const hashedCode = require('crypto').createHash('sha256').update(String(code)).digest('hex');
+      const save = jest.fn().mockResolvedValue(true);
+      const user = {
+        email: 'a@b.com',
+        password: 'oldpassword',
+        passwordResetCode: hashedCode,
+        passwordResetCodeExpires: new Date(Date.now() + 10000),
+        save,
+      };
+      mockRepo.findByEmail.mockResolvedValue(user);
+      const newPassword = '123456'; // minimum 6 characters
+      await service.resetPassword('a@b.com', code, newPassword, newPassword);
+      expect(user.password).toBe(newPassword);
+      expect(user.passwordResetCode).toBeNull();
+      expect(user.passwordResetCodeExpires).toBeNull();
+      expect(save).toHaveBeenCalled();
+    });
+  });
 });

@@ -7,6 +7,7 @@ describe('AccountController', () => {
     signIn: jest.fn(),
     verifyEmail: jest.fn(),
     forgotPassword: jest.fn(),
+    resetPassword: jest.fn(),
   };
   const controller = new AccountController(mockService as any);
 
@@ -318,6 +319,126 @@ describe('AccountController', () => {
       const res = mockRes();
       await controller.forgotPassword(req, res, mockNext);
       expect(mockNext).toHaveBeenCalledWith(error);
+    });
+  });
+
+  describe('resetPassword', () => {
+    it('should return 200 and success message for valid reset', async () => {
+      mockService.resetPassword.mockResolvedValue();
+      const req = mockReq({
+        email: 'test@example.com',
+        resetCode: 123456,
+        newPassword: 'newpassword123',
+        confirmPassword: 'newpassword123',
+      });
+      const res = mockRes();
+      await controller.resetPassword(req, res, mockNext);
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith(
+        expect.objectContaining({
+          status: 'success',
+          message: 'Password has been reset successfully.',
+        })
+      );
+    });
+
+    it('should call next with error when service throws', async () => {
+      const error = new ApiError('User not found', 404);
+      mockService.resetPassword.mockRejectedValue(error);
+      const req = mockReq({
+        email: 'test@example.com',
+        resetCode: 123456,
+        newPassword: 'newpassword123',
+        confirmPassword: 'newpassword123',
+      });
+      const res = mockRes();
+      await controller.resetPassword(req, res, mockNext);
+      expect(mockNext).toHaveBeenCalledWith(error);
+    });
+
+    it('should handle validation errors from service', async () => {
+      const error = new ApiError('Email, reset code, new password, and confirm password are required.', 400);
+      mockService.resetPassword.mockRejectedValue(error);
+      const req = mockReq({
+        email: 'test@example.com',
+        resetCode: 123456,
+        newPassword: 'newpassword123',
+        confirmPassword: 'newpassword123',
+      });
+      const res = mockRes();
+      await controller.resetPassword(req, res, mockNext);
+      expect(mockNext).toHaveBeenCalledWith(error);
+    });
+
+    it('should handle mismatched passwords', async () => {
+      mockService.resetPassword.mockRejectedValue(new ApiError('New password and confirm password must match.', 400));
+      const req = mockReq({
+        email: 'test@example.com',
+        resetCode: 123456,
+        newPassword: 'newpassword123',
+        confirmPassword: 'differentpassword',
+      });
+      const res = mockRes();
+      await controller.resetPassword(req, res, mockNext);
+      expect(mockNext).toHaveBeenCalledWith(expect.any(ApiError));
+    });
+
+    it('should handle user not found', async () => {
+      mockService.resetPassword.mockRejectedValue(new ApiError('User not found', 404));
+      const req = mockReq({
+        email: 'nonexistent@example.com',
+        resetCode: 123456,
+        newPassword: 'newpassword123',
+        confirmPassword: 'newpassword123',
+      });
+      const res = mockRes();
+      await controller.resetPassword(req, res, mockNext);
+      expect(mockNext).toHaveBeenCalledWith(expect.any(ApiError));
+    });
+
+    it('should handle invalid reset code', async () => {
+      mockService.resetPassword.mockRejectedValue(
+        new ApiError('Invalid reset code. Please check your code and try again.', 400)
+      );
+      const req = mockReq({
+        email: 'test@example.com',
+        resetCode: 999999,
+        newPassword: 'newpassword123',
+        confirmPassword: 'newpassword123',
+      });
+      const res = mockRes();
+      await controller.resetPassword(req, res, mockNext);
+      expect(mockNext).toHaveBeenCalledWith(expect.any(ApiError));
+    });
+
+    it('should handle expired reset code', async () => {
+      mockService.resetPassword.mockRejectedValue(
+        new ApiError('Password reset code has expired. Please request a new one.', 400)
+      );
+      const req = mockReq({
+        email: 'test@example.com',
+        resetCode: 123456,
+        newPassword: 'newpassword123',
+        confirmPassword: 'newpassword123',
+      });
+      const res = mockRes();
+      await controller.resetPassword(req, res, mockNext);
+      expect(mockNext).toHaveBeenCalledWith(expect.any(ApiError));
+    });
+
+    it('should handle no reset code found', async () => {
+      mockService.resetPassword.mockRejectedValue(
+        new ApiError('No password reset code found. Please request a new one.', 400)
+      );
+      const req = mockReq({
+        email: 'test@example.com',
+        resetCode: 123456,
+        newPassword: 'newpassword123',
+        confirmPassword: 'newpassword123',
+      });
+      const res = mockRes();
+      await controller.resetPassword(req, res, mockNext);
+      expect(mockNext).toHaveBeenCalledWith(expect.any(ApiError));
     });
   });
 

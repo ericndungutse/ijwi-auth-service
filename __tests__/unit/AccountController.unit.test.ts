@@ -320,4 +320,180 @@ describe('AccountController', () => {
       expect(mockNext).toHaveBeenCalledWith(error);
     });
   });
+
+  describe('logout', () => {
+    it('should clear JWT cookie for web clients', async () => {
+      const mockRequest = {
+        headers: {
+          'x-client-type': 'web',
+        },
+      } as any;
+
+      const mockResponse = {
+        cookie: jest.fn(),
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      } as any;
+
+      const mockNext = jest.fn();
+
+      await controller.logout(mockRequest, mockResponse, mockNext);
+
+      expect(mockResponse.cookie).toHaveBeenCalledWith('jwt', '', {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        maxAge: 0,
+      });
+
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        status: 'success',
+        message: 'Logged out successfully',
+        data: null,
+      });
+    });
+
+    it('should return 400 error for mobile clients', async () => {
+      const mockRequest = {
+        headers: {
+          'x-client-type': 'mobile',
+        },
+      } as any;
+
+      const mockResponse = {
+        cookie: jest.fn(),
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      } as any;
+
+      const mockNext = jest.fn();
+
+      await controller.logout(mockRequest, mockResponse, mockNext);
+
+      expect(mockResponse.cookie).not.toHaveBeenCalled();
+      expect(mockResponse.status).toHaveBeenCalledWith(400);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        status: 'fail',
+        message: 'Logout failed.',
+        errors: [{ message: 'Logout failed. Mobile clients logout is not supported.' }],
+      });
+    });
+
+    it('should handle undefined client type as web client', async () => {
+      const mockRequest = {
+        headers: {},
+      } as any;
+
+      const mockResponse = {
+        cookie: jest.fn(),
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      } as any;
+
+      const mockNext = jest.fn();
+
+      await controller.logout(mockRequest, mockResponse, mockNext);
+
+      expect(mockResponse.cookie).toHaveBeenCalledWith('jwt', '', {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        maxAge: 0,
+      });
+
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        status: 'success',
+        message: 'Logged out successfully',
+        data: null,
+      });
+    });
+
+    it('should handle null client type as web client', async () => {
+      const mockRequest = {
+        headers: {
+          'x-client-type': null,
+        },
+      } as any;
+
+      const mockResponse = {
+        cookie: jest.fn(),
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      } as any;
+
+      const mockNext = jest.fn();
+
+      await controller.logout(mockRequest, mockResponse, mockNext);
+
+      expect(mockResponse.cookie).toHaveBeenCalledWith('jwt', '', {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        maxAge: 0,
+      });
+
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        status: 'success',
+        message: 'Logged out successfully',
+        data: null,
+      });
+    });
+
+    it('should handle empty string client type as web client', async () => {
+      const mockRequest = {
+        headers: {
+          'x-client-type': '',
+        },
+      } as any;
+
+      const mockResponse = {
+        cookie: jest.fn(),
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      } as any;
+
+      const mockNext = jest.fn();
+
+      await controller.logout(mockRequest, mockResponse, mockNext);
+
+      expect(mockResponse.cookie).toHaveBeenCalledWith('jwt', '', {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        maxAge: 0,
+      });
+
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        status: 'success',
+        message: 'Logged out successfully',
+        data: null,
+      });
+    });
+
+    it('should handle error and call next', async () => {
+      const mockRequest = {
+        headers: {
+          'x-client-type': 'web',
+        },
+      } as any;
+
+      const mockResponse = {
+        cookie: jest.fn().mockImplementation(() => {
+          throw new Error('Cookie error');
+        }),
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      } as any;
+
+      const mockNext = jest.fn();
+
+      await controller.logout(mockRequest, mockResponse, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+    });
+  });
 });

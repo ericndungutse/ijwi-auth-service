@@ -29,4 +29,8 @@ accountRouter.get('/logout', authenticate, (req: Request, res: Response, next: N
   container.accountController.logout(req, res, next)
 );
 
+accountRouter.get('/me', authenticate, (req: Request, res: Response, next: NextFunction) =>
+  container.accountController.getCurrentUser(req, res, next)
+);
+
 module.exports = accountRouter;

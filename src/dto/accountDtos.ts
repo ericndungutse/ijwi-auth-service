@@ -45,3 +45,10 @@ export interface IResetPasswordDto {
   newPassword: string;
   confirmPassword: string;
 }
+
+export interface ICurrentUserDto {
+  id: string;
+  email: string;
+  role: 'admin' | 'user';
+  createdAt: Date;
+}

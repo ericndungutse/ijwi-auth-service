@@ -1,8 +1,9 @@
 import { Request, Response, NextFunction } from 'express';
 import { IAccountService } from '../services/interfaces/IAccountService';
-import { ICreateAccountDto, IAccountDto, IResetPasswordDto } from '../dto/accountDtos';
+import { ICreateAccountDto, IAccountDto, IResetPasswordDto, ICurrentUserDto } from '../dto/accountDtos';
 import { ApiResponse } from '../dto/ApiResponse';
 import { ApiError } from '../dto/ApiError';
+import { IAccountDocument } from '../models/account/account.types';
 
 export class AccountController {
   private accountService: IAccountService;
@@ -156,24 +157,16 @@ export class AccountController {
     try {
       const { email, code } = req.body;
       if (!email || !code) {
-        const response: ApiResponse<null, { message: string }[]> = {
-          status: 'fail',
-          message: 'Email and verification code are required.',
-          errors: [{ message: 'Email and verification code are required.' }],
-        };
-        res.status(400).json(response);
+        next(new ApiError('Email and verification code are required.', 400));
         return;
       }
       const success = await this.accountService.verifyEmail(email, Number(code));
       if (!success) {
-        const response: ApiResponse<null, { message: string }[]> = {
-          status: 'fail',
-          message: 'Invalid email or verification code.',
-          errors: [{ message: 'Invalid email or verification code.' }],
-        };
-        res.status(400).json(response);
+        next(new ApiError('Invalid email or verification code.', 400));
+
         return;
       }
+
       const response: ApiResponse<string, null> = {
         status: 'success',
         message: 'Email verified successfully',
@@ -188,11 +181,7 @@ export class AccountController {
     try {
       const { email } = req.body;
       if (!email) {
-        const response: ApiResponse<null, { message: string }[]> = {
-          status: 'fail',
-          message: 'Email is required.',
-        };
-        res.status(400).json(response);
+        next(new ApiError('Email is required.', 400));
         return;
       }
       await this.accountService.forgotPassword(email);
@@ -229,12 +218,8 @@ export class AccountController {
 
       // Reject if client type is mobile
       if (clientType === 'mobile') {
-        const response: ApiResponse<null, { message: string }[]> = {
-          status: 'fail',
-          message: 'Logout failed.',
-          errors: [{ message: 'Logout failed. Mobile clients logout is not supported.' }],
-        };
-        res.status(400).json(response);
+        next(new ApiError('Logout failed. Mobile clients logout is not supported.', 400));
+
         return;
       }
 
@@ -252,6 +237,38 @@ export class AccountController {
       };
       res.status(200).json(response);
     } catch (error) {
+      next(error);
+    }
+  }
+
+  async getCurrentUser(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      // The user is already attached to req.user by the authenticate middleware
+      const user = (req as any).user as IAccountDocument | undefined;
+
+      if (!user) {
+        next(new ApiError('User not found', 404));
+
+        return;
+      }
+
+      const userDto: ICurrentUserDto = {
+        id: user._id.toString(),
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt,
+      };
+
+      const response: ApiResponse<{ user: ICurrentUserDto }, null> = {
+        status: 'success',
+        message: 'Current user information retrieved successfully',
+        data: {
+          user: userDto,
+        },
+      };
+
+      res.status(200).json(response);
+    } catch (error: any) {
       next(error);
     }
   }

@@ -3,12 +3,13 @@ import jwt from 'jsonwebtoken';
 import { Account } from '../models/account/account.model';
 import { ApiError } from '../dto/ApiError';
 import { ApiResponse } from '../dto/ApiResponse';
+import { IAccountDocument } from '../models/account/account.types';
 
 // Extend the Request interface to include user property
 declare global {
   namespace Express {
     interface Request {
-      user?: any;
+      user?: IAccountDocument;
     }
   }
 }

@@ -21,6 +21,10 @@ accountRouter.post('/forgot-password', (req: Request, res: Response, next: NextF
   container.accountController.forgotPassword(req, res, next)
 );
 
+accountRouter.patch('/reset-password', (req: Request, res: Response, next: NextFunction) =>
+  container.accountController.resetPassword(req, res, next)
+);
+
 accountRouter.get('/logout', authenticate, (req: Request, res: Response, next: NextFunction) =>
   container.accountController.logout(req, res, next)
 );

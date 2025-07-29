@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { IAccountService } from '../services/interfaces/IAccountService';
-import { ICreateAccountDto, IAccountDto } from '../dto/accountDtos';
+import { ICreateAccountDto, IAccountDto, IResetPasswordDto } from '../dto/accountDtos';
 import { ApiResponse } from '../dto/ApiResponse';
 import { ApiError } from '../dto/ApiError';
 
@@ -206,12 +206,26 @@ export class AccountController {
     }
   }
 
+  async resetPassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { email, resetCode, newPassword, confirmPassword }: IResetPasswordDto = req.body;
+
+      await this.accountService.resetPassword(email, resetCode, newPassword, confirmPassword);
+
+      const response: ApiResponse<string, null> = {
+        status: 'success',
+        message: 'Password has been reset successfully.',
+      };
+      res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
     try {
       // Check for client type header
       const clientType = req.headers['x-client-type'] as 'mobile' | 'web' | undefined;
-
-      console.log('clientType', clientType);
 
       // Reject if client type is mobile
       if (clientType === 'mobile') {

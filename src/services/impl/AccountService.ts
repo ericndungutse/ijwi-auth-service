@@ -64,4 +64,42 @@ export class AccountService implements IAccountService {
     await user.save();
     await this.emailService.sendPasswordResetEmail(user.email, String(code));
   }
+
+  async resetPassword(email: string, resetCode: number, newPassword: string, confirmPassword: string): Promise<void> {
+    // Validate required fields
+    if (!email || !resetCode || !newPassword || !confirmPassword) {
+      throw new ApiError('Email, reset code, new password, and confirm password are required.', 400);
+    }
+
+    // Validate password match
+    if (newPassword !== confirmPassword) {
+      throw new ApiError('New password and confirm password must match.', 400);
+    }
+
+    const user = await this.accountRepository.findByEmail(email);
+    if (!user) {
+      throw new ApiError('User not found', 404);
+    }
+
+    // Check if reset code exists and is not expired
+    if (!user.passwordResetCode || !user.passwordResetCodeExpires) {
+      throw new ApiError('No password reset code found. Please request a new one.', 400);
+    }
+
+    if (new Date() > user.passwordResetCodeExpires) {
+      throw new ApiError('Password reset code has expired. Please request a new one.', 400);
+    }
+
+    // Verify the reset code
+    const passedHash = hashDigitCode(resetCode);
+    if (user.passwordResetCode !== passedHash) {
+      throw new ApiError('Invalid reset code. Please check your code and try again.', 400);
+    }
+
+    // Update password and clear reset code
+    user.password = newPassword;
+    user.passwordResetCode = null;
+    user.passwordResetCodeExpires = null;
+    await user.save();
+  }
 }

@@ -7,4 +7,5 @@ export interface IAccountService {
   verifyEmail(email: string, code: number): Promise<boolean>;
   forgotPassword(email: string): Promise<void>;
   resetPassword(email: string, resetCode: number, newPassword: string, confirmPassword: string): Promise<void>;
+  getCurrentUser(userId: string): Promise<IAccountDocument | null>;
 }

@@ -354,5 +354,82 @@ describe('authenticate middleware', () => {
         errors: [{ message: 'No JWT token provided. Please provide a valid token in Authorization header or cookie.' }],
       });
     });
+
+    it('should handle TokenExpiredError', async () => {
+      const token = 'expired-token';
+      mockReq.headers = { authorization: `Bearer ${token}` };
+
+      const expiredError = new jwt.TokenExpiredError('jwt expired', new Date());
+      mockJwt.verify.mockImplementation(() => {
+        throw expiredError;
+      });
+
+      await authenticate(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'Authentication failed',
+          statusCode: 401,
+        })
+      );
+    });
+
+    it('should handle JsonWebTokenError', async () => {
+      const token = 'invalid-token';
+      mockReq.headers = { authorization: `Bearer ${token}` };
+
+      const invalidTokenError = new jwt.JsonWebTokenError('invalid token');
+      mockJwt.verify.mockImplementation(() => {
+        throw invalidTokenError;
+      });
+
+      await authenticate(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'JWT token error',
+          statusCode: 401,
+        })
+      );
+    });
+
+    it('should handle NotBeforeError', async () => {
+      const token = 'not-before-token';
+      mockReq.headers = { authorization: `Bearer ${token}` };
+
+      const notBeforeError = new jwt.NotBeforeError('jwt not active', new Date());
+      mockJwt.verify.mockImplementation(() => {
+        throw notBeforeError;
+      });
+
+      await authenticate(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'JWT token not active',
+          statusCode: 401,
+        })
+      );
+    });
+
+    it('should handle generic JWT error', async () => {
+      const token = 'generic-error-token';
+      mockReq.headers = { authorization: `Bearer ${token}` };
+
+      const genericJwtError = new jwt.JsonWebTokenError('generic jwt error');
+      genericJwtError.name = 'SomeOtherJwtError';
+      mockJwt.verify.mockImplementation(() => {
+        throw genericJwtError;
+      });
+
+      await authenticate(mockReq as Request, mockRes as Response, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'JWT token error',
+          statusCode: 401,
+        })
+      );
+    });
   });
 });

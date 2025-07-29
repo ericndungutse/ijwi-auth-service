@@ -269,14 +269,18 @@ describe('AccountController', () => {
       const req = mockReq({});
       const res = mockRes();
       await controller.verifyEmail(req, res, mockNext);
-      expect(res.status).toHaveBeenCalledWith(400);
+      expect(mockNext).toHaveBeenCalledWith(expect.any(ApiError));
+      expect(mockNext.mock.calls[0][0].message).toBe('Email and verification code are required.');
+      expect(mockNext.mock.calls[0][0].statusCode).toBe(400);
     });
     it('should return 400 if verification fails', async () => {
       mockService.verifyEmail.mockResolvedValue(false);
       const req = mockReq({ email: 'a@b.com', code: 123 });
       const res = mockRes();
       await controller.verifyEmail(req, res, mockNext);
-      expect(res.status).toHaveBeenCalledWith(400);
+      expect(mockNext).toHaveBeenCalledWith(expect.any(ApiError));
+      expect(mockNext.mock.calls[0][0].message).toBe('Invalid email or verification code.');
+      expect(mockNext.mock.calls[0][0].statusCode).toBe(400);
     });
     it('should return 200 if verification succeeds', async () => {
       mockService.verifyEmail.mockResolvedValue(true);
@@ -301,7 +305,9 @@ describe('AccountController', () => {
       const req = mockReq({});
       const res = mockRes();
       await controller.forgotPassword(req, res, mockNext);
-      expect(res.status).toHaveBeenCalledWith(400);
+      expect(mockNext).toHaveBeenCalledWith(expect.any(ApiError));
+      expect(mockNext.mock.calls[0][0].message).toBe('Email is required.');
+      expect(mockNext.mock.calls[0][0].statusCode).toBe(400);
     });
     it('should call service and return 200 on success', async () => {
       mockService.forgotPassword = jest.fn().mockResolvedValue(undefined);
@@ -324,7 +330,7 @@ describe('AccountController', () => {
 
   describe('resetPassword', () => {
     it('should return 200 and success message for valid reset', async () => {
-      mockService.resetPassword.mockResolvedValue();
+      mockService.resetPassword.mockResolvedValue(undefined);
       const req = mockReq({
         email: 'test@example.com',
         resetCode: 123456,
@@ -493,12 +499,9 @@ describe('AccountController', () => {
       await controller.logout(mockRequest, mockResponse, mockNext);
 
       expect(mockResponse.cookie).not.toHaveBeenCalled();
-      expect(mockResponse.status).toHaveBeenCalledWith(400);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        status: 'fail',
-        message: 'Logout failed.',
-        errors: [{ message: 'Logout failed. Mobile clients logout is not supported.' }],
-      });
+      expect(mockNext).toHaveBeenCalledWith(expect.any(ApiError));
+      expect(mockNext.mock.calls[0][0].message).toBe('Logout failed. Mobile clients logout is not supported.');
+      expect(mockNext.mock.calls[0][0].statusCode).toBe(400);
     });
 
     it('should handle undefined client type as web client', async () => {
@@ -615,6 +618,125 @@ describe('AccountController', () => {
       await controller.logout(mockRequest, mockResponse, mockNext);
 
       expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+    });
+  });
+
+  describe('getCurrentUser', () => {
+    it('should return current user information when user exists', async () => {
+      const mockUser = {
+        _id: { toString: () => 'user123' },
+        email: 'test@example.com',
+        role: 'user',
+        createdAt: new Date('2024-01-01T00:00:00.000Z'),
+      };
+
+      const mockRequest = {
+        user: mockUser,
+      } as any;
+
+      const mockResponse = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      } as any;
+
+      const mockNext = jest.fn();
+
+      await controller.getCurrentUser(mockRequest, mockResponse, mockNext);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        status: 'success',
+        message: 'Current user information retrieved successfully',
+        data: {
+          user: {
+            id: 'user123',
+            email: 'test@example.com',
+            role: 'user',
+            createdAt: new Date('2024-01-01T00:00:00.000Z'),
+          },
+        },
+      });
+    });
+
+    it('should return 404 when user is not found', async () => {
+      const mockRequest = {
+        user: undefined,
+      } as any;
+
+      const mockResponse = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      } as any;
+
+      const mockNext = jest.fn();
+
+      await controller.getCurrentUser(mockRequest, mockResponse, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.any(ApiError));
+      expect(mockNext.mock.calls[0][0].message).toBe('User not found');
+      expect(mockNext.mock.calls[0][0].statusCode).toBe(404);
+    });
+
+    it('should handle error and call next', async () => {
+      const mockUser = {
+        _id: { toString: () => 'user123' },
+        email: 'test@example.com',
+        role: 'user',
+        createdAt: new Date('2024-01-01T00:00:00.000Z'),
+      };
+
+      const mockRequest = {
+        user: mockUser,
+      } as any;
+
+      const mockResponse = {
+        status: jest.fn().mockImplementation(() => {
+          throw new Error('Response error');
+        }),
+        json: jest.fn(),
+      } as any;
+
+      const mockNext = jest.fn();
+
+      await controller.getCurrentUser(mockRequest, mockResponse, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.any(Error));
+    });
+
+    it('should handle admin user role', async () => {
+      const mockUser = {
+        _id: { toString: () => 'admin123' },
+        email: 'admin@example.com',
+        role: 'admin',
+        createdAt: new Date('2024-01-01T00:00:00.000Z'),
+      };
+
+      const mockRequest = {
+        user: mockUser,
+      } as any;
+
+      const mockResponse = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      } as any;
+
+      const mockNext = jest.fn();
+
+      await controller.getCurrentUser(mockRequest, mockResponse, mockNext);
+
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        status: 'success',
+        message: 'Current user information retrieved successfully',
+        data: {
+          user: {
+            id: 'admin123',
+            email: 'admin@example.com',
+            role: 'admin',
+            createdAt: new Date('2024-01-01T00:00:00.000Z'),
+          },
+        },
+      });
     });
   });
 });

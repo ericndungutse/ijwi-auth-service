@@ -102,4 +102,9 @@ export class AccountService implements IAccountService {
     user.passwordResetCodeExpires = null;
     await user.save();
   }
+
+  async getCurrentUser(userId: string): Promise<IAccountDocument | null> {
+    const user = await this.accountRepository.findById(userId);
+    return user;
+  }
 }

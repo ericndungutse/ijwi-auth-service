@@ -264,8 +264,7 @@ describe('Logout Integration Tests', () => {
 
       expect(response.status).toBe(400);
       expect(response.body.status).toBe('fail');
-      expect(response.body.message).toBe('Logout failed.');
-      expect(response.body.errors[0].message).toBe('Logout failed. Mobile clients logout is not supported.');
+      expect(response.body.message).toBe('Logout failed. Mobile clients logout is not supported.');
     });
 
     it('should work with Authorization header instead of cookie', async () => {

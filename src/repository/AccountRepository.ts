@@ -18,4 +18,8 @@ export class AccountRepository implements IAccountRepository {
   async findByEmail(email: string): Promise<IAccountDocument | null> {
     return await this.Account.findOne({ email });
   }
+
+  async findById(id: string): Promise<IAccountDocument | null> {
+    return await this.Account.findById(id);
+  }
 }

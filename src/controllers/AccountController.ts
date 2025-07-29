@@ -205,4 +205,40 @@ export class AccountController {
       next(error);
     }
   }
+
+  async logout(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      // Check for client type header
+      const clientType = req.headers['x-client-type'] as 'mobile' | 'web' | undefined;
+
+      console.log('clientType', clientType);
+
+      // Reject if client type is mobile
+      if (clientType === 'mobile') {
+        const response: ApiResponse<null, { message: string }[]> = {
+          status: 'fail',
+          message: 'Logout failed.',
+          errors: [{ message: 'Logout failed. Mobile clients logout is not supported.' }],
+        };
+        res.status(400).json(response);
+        return;
+      }
+
+      res.cookie('jwt', '', {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'none',
+        maxAge: 0, // This immediately expires the cookie
+      });
+
+      const response: ApiResponse<null, null> = {
+        status: 'success',
+        message: 'Logged out successfully',
+        data: null,
+      };
+      res.status(200).json(response);
+    } catch (error) {
+      next(error);
+    }
+  }
 }

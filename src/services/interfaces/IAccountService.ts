@@ -8,4 +8,5 @@ export interface IAccountService {
   forgotPassword(email: string): Promise<void>;
   resetPassword(email: string, resetCode: number, newPassword: string, confirmPassword: string): Promise<void>;
   getCurrentUser(userId: string): Promise<IAccountDocument | null>;
+  updatePassword(userId: string, currentPassword: string, newPassword: string, confirmPassword: string): Promise<void>;
 }

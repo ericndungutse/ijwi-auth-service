@@ -107,4 +107,45 @@ export class AccountService implements IAccountService {
     const user = await this.accountRepository.findById(userId);
     return user;
   }
+
+  async updatePassword(
+    userId: string,
+    currentPassword: string,
+    newPassword: string,
+    confirmPassword: string
+  ): Promise<void> {
+    // Validate required fields
+    if (!currentPassword || !newPassword || !confirmPassword) {
+      throw new ApiError('Current password, new password, and confirm password are required.', 400);
+    }
+
+    // Validate password match
+    if (newPassword !== confirmPassword) {
+      throw new ApiError('New password and confirm password must match.', 400);
+    }
+
+    // Validate current password is not the same as new password
+    if (currentPassword === newPassword) {
+      throw new ApiError('New password must be different from current password.', 400);
+    }
+
+    // Get user by ID
+    const user = await this.accountRepository.findById(userId);
+    if (!user) {
+      throw new ApiError('User not found', 404);
+    }
+
+    // Verify current password
+    const isCurrentPasswordValid = await user.comparePassword(currentPassword);
+    if (!isCurrentPasswordValid) {
+      throw new ApiError('Current password is incorrect.', 401);
+    }
+
+    // Update password
+    user.password = newPassword;
+    await user.save();
+
+    // Log password change event (you can implement logging here)
+    console.log(`Password updated for user: ${user.email} at ${new Date().toISOString()}`);
+  }
 }

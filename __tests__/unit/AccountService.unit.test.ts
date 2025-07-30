@@ -9,6 +9,7 @@ describe('AccountService', () => {
     findByEmail: jest.fn(),
     findById: jest.fn(),
     verifyEmail: jest.fn(),
+    deleteAccount: jest.fn(),
   };
   const mockEmail = {
     sendVerificationEmail: jest.fn(),
@@ -292,6 +293,73 @@ describe('AccountService', () => {
       await expect(service.updatePassword('user123', '', 'NewPassword123!', 'NewPassword123!')).rejects.toThrow(
         'Current password, new password, and confirm password are required.'
       );
+    });
+  });
+
+  describe('deleteAccount', () => {
+    const mockUser = {
+      _id: 'user123',
+      email: 'test@example.com',
+      isActive: true,
+    } as any;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should successfully delete account when user exists and is active', async () => {
+      mockRepo.findById.mockResolvedValue(mockUser);
+      mockRepo.deleteAccount.mockResolvedValue(undefined);
+
+      await service.deleteAccount('user123');
+
+      expect(mockRepo.findById).toHaveBeenCalledWith('user123');
+      expect(mockRepo.deleteAccount).toHaveBeenCalledWith('user123');
+    });
+
+    it('should throw error when userId is not provided', async () => {
+      await expect(service.deleteAccount('')).rejects.toThrow('User ID is required.');
+      await expect(service.deleteAccount(null as any)).rejects.toThrow('User ID is required.');
+      await expect(service.deleteAccount(undefined as any)).rejects.toThrow('User ID is required.');
+    });
+
+    it('should throw error when user is not found', async () => {
+      mockRepo.findById.mockResolvedValue(null);
+
+      await expect(service.deleteAccount('nonexistent')).rejects.toThrow('User not found');
+      expect(mockRepo.findById).toHaveBeenCalledWith('nonexistent');
+      expect(mockRepo.deleteAccount).not.toHaveBeenCalled();
+    });
+
+    it('should throw error when account is already inactive', async () => {
+      const inactiveUser = {
+        _id: 'user123',
+        email: 'test@example.com',
+        isActive: false,
+      };
+      mockRepo.findById.mockResolvedValue(inactiveUser);
+
+      await expect(service.deleteAccount('user123')).rejects.toThrow('Account is already inactive.');
+      expect(mockRepo.findById).toHaveBeenCalledWith('user123');
+      expect(mockRepo.deleteAccount).not.toHaveBeenCalled();
+    });
+
+    it('should handle repository errors during deletion', async () => {
+      mockRepo.findById.mockResolvedValue(mockUser);
+      mockRepo.deleteAccount.mockRejectedValue(new Error('Database error'));
+
+      await expect(service.deleteAccount('user123')).rejects.toThrow('Database error');
+      expect(mockRepo.findById).toHaveBeenCalledWith('user123');
+      expect(mockRepo.deleteAccount).toHaveBeenCalledWith('user123');
+    });
+
+    it('should handle repository errors when user not found during deletion', async () => {
+      mockRepo.findById.mockResolvedValue(mockUser);
+      mockRepo.deleteAccount.mockRejectedValue(new Error('User not found'));
+
+      await expect(service.deleteAccount('user123')).rejects.toThrow('User not found');
+      expect(mockRepo.findById).toHaveBeenCalledWith('user123');
+      expect(mockRepo.deleteAccount).toHaveBeenCalledWith('user123');
     });
   });
 });

@@ -8,6 +8,8 @@ describe('AccountRepository', () => {
     findOne: jest.fn(),
     save: jest.fn(),
     emailService: jest.fn(),
+    findById: jest.fn(),
+    findByIdAndUpdate: jest.fn(),
   };
   const repo = new AccountRepository(mockModel as any);
   const accountService = new AccountService(repo, mockModel.emailService as any);
@@ -47,5 +49,37 @@ describe('AccountRepository', () => {
     expect(user.emailVerification.verified).toBe(true);
     expect(user.save).toHaveBeenCalled();
     expect(result).toBe(true);
+  });
+
+  it('findById calls model.findById', async () => {
+    mockModel.findById.mockResolvedValue({ _id: 'user123', email: 'a@b.com' });
+    const result = await repo.findById('user123');
+    expect(mockModel.findById).toHaveBeenCalledWith('user123');
+    expect(result).toEqual({ _id: 'user123', email: 'a@b.com' });
+  });
+
+  describe('deleteAccount', () => {
+    it('should successfully delete account when user exists', async () => {
+      const mockUser = { _id: 'user123', email: 'test@example.com', isActive: false };
+      mockModel.findByIdAndUpdate.mockResolvedValue(mockUser);
+
+      await repo.deleteAccount('user123');
+
+      expect(mockModel.findByIdAndUpdate).toHaveBeenCalledWith('user123', { isActive: false }, { new: true });
+    });
+
+    it('should throw error when user is not found', async () => {
+      mockModel.findByIdAndUpdate.mockResolvedValue(null);
+
+      await expect(repo.deleteAccount('nonexistent')).rejects.toThrow('User not found');
+      expect(mockModel.findByIdAndUpdate).toHaveBeenCalledWith('nonexistent', { isActive: false }, { new: true });
+    });
+
+    it('should handle database errors during deletion', async () => {
+      mockModel.findByIdAndUpdate.mockRejectedValue(new Error('Database connection error'));
+
+      await expect(repo.deleteAccount('user123')).rejects.toThrow('Database connection error');
+      expect(mockModel.findByIdAndUpdate).toHaveBeenCalledWith('user123', { isActive: false }, { new: true });
+    });
   });
 });

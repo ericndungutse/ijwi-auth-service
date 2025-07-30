@@ -52,3 +52,9 @@ export interface ICurrentUserDto {
   role: 'admin' | 'user';
   createdAt: Date;
 }
+
+export interface IUpdatePasswordDto {
+  currentPassword: string;
+  newPassword: string;
+  confirmPassword: string;
+}

@@ -33,4 +33,8 @@ accountRouter.get('/me', authenticate, (req: Request, res: Response, next: NextF
   container.accountController.getCurrentUser(req, res, next)
 );
 
+accountRouter.patch('/update-password', authenticate, (req: Request, res: Response, next: NextFunction) =>
+  container.accountController.updatePassword(req, res, next)
+);
+
 module.exports = accountRouter;

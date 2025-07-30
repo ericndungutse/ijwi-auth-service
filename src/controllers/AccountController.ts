@@ -1,6 +1,6 @@
 import { Request, Response, NextFunction } from 'express';
 import { IAccountService } from '../services/interfaces/IAccountService';
-import { ICreateAccountDto, IAccountDto, IResetPasswordDto, ICurrentUserDto } from '../dto/accountDtos';
+import { ICreateAccountDto, IAccountDto, IResetPasswordDto, ICurrentUserDto, IUpdatePasswordDto } from '../dto/accountDtos';
 import { ApiResponse } from '../dto/ApiResponse';
 import { ApiError } from '../dto/ApiError';
 import { IAccountDocument } from '../models/account/account.types';
@@ -265,6 +265,35 @@ export class AccountController {
         data: {
           user: userDto,
         },
+      };
+
+      res.status(200).json(response);
+    } catch (error: any) {
+      next(error);
+    }
+  }
+
+  async updatePassword(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const { currentPassword, newPassword, confirmPassword }: IUpdatePasswordDto = req.body;
+      const user = (req as any).user as IAccountDocument | undefined;
+
+      if (!user) {
+        next(new ApiError('User not found', 404));
+        return;
+      }
+
+      await this.accountService.updatePassword(
+        user._id.toString(),
+        currentPassword,
+        newPassword,
+        confirmPassword
+      );
+
+      const response: ApiResponse<null, null> = {
+        status: 'success',
+        message: 'Password updated successfully',
+        data: null,
       };
 
       res.status(200).json(response);

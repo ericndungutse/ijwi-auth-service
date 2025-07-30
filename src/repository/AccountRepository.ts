@@ -22,4 +22,16 @@ export class AccountRepository implements IAccountRepository {
   async findById(id: string): Promise<IAccountDocument | null> {
     return await this.Account.findById(id);
   }
+
+  async deleteAccount(userId: string): Promise<void> {
+    const result = await this.Account.findByIdAndUpdate(
+      userId,
+      { isActive: false },
+      { new: true }
+    );
+    
+    if (!result) {
+      throw new Error('User not found');
+    }
+  }
 }

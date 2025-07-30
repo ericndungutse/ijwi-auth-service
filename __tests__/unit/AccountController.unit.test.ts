@@ -9,6 +9,7 @@ describe('AccountController', () => {
     forgotPassword: jest.fn(),
     resetPassword: jest.fn(),
     updatePassword: jest.fn(),
+    deleteAccount: jest.fn(),
   };
   const controller = new AccountController(mockService as any);
 
@@ -863,6 +864,100 @@ describe('AccountController', () => {
       await controller.updatePassword(mockRequest, mockResponse, mockNext);
 
       expect(mockNext).toHaveBeenCalledWith(serviceError);
+    });
+  });
+
+  describe('deleteAccount', () => {
+    it('should successfully delete account and return 200', async () => {
+      const mockUser = {
+        _id: 'user123',
+        email: 'test@example.com',
+        isActive: true,
+      };
+      mockService.deleteAccount.mockResolvedValue(undefined);
+      const req = mockReq({});
+      (req as any).user = mockUser;
+      const res = mockRes();
+
+      await controller.deleteAccount(req, res, mockNext);
+
+      expect(mockService.deleteAccount).toHaveBeenCalledWith('user123');
+      expect(res.status).toHaveBeenCalledWith(200);
+      expect(res.json).toHaveBeenCalledWith({
+        status: 'success',
+        message: 'Account deleted successfully. Your account has been marked as inactive.',
+        data: null,
+      });
+    });
+
+    it('should call next(error) when user is not found', async () => {
+      const req = mockReq({});
+      (req as any).user = undefined;
+      const res = mockRes();
+
+      await controller.deleteAccount(req, res, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(
+        expect.objectContaining({
+          message: 'User not found',
+          statusCode: 404,
+        })
+      );
+      expect(mockService.deleteAccount).not.toHaveBeenCalled();
+    });
+
+    it('should call next(error) when service throws error', async () => {
+      const mockUser = {
+        _id: 'user123',
+        email: 'test@example.com',
+        isActive: true,
+      };
+      const error = new ApiError('Account deletion failed', 500);
+      mockService.deleteAccount.mockRejectedValue(error);
+      const req = mockReq({});
+      (req as any).user = mockUser;
+      const res = mockRes();
+
+      await controller.deleteAccount(req, res, mockNext);
+
+      expect(mockService.deleteAccount).toHaveBeenCalledWith('user123');
+      expect(mockNext).toHaveBeenCalledWith(error);
+    });
+
+    it('should handle service errors for non-existent user', async () => {
+      const mockUser = {
+        _id: 'user123',
+        email: 'test@example.com',
+        isActive: true,
+      };
+      const error = new ApiError('User not found', 404);
+      mockService.deleteAccount.mockRejectedValue(error);
+      const req = mockReq({});
+      (req as any).user = mockUser;
+      const res = mockRes();
+
+      await controller.deleteAccount(req, res, mockNext);
+
+      expect(mockService.deleteAccount).toHaveBeenCalledWith('user123');
+      expect(mockNext).toHaveBeenCalledWith(error);
+    });
+
+    it('should handle service errors for already inactive account', async () => {
+      const mockUser = {
+        _id: 'user123',
+        email: 'test@example.com',
+        isActive: true,
+      };
+      const error = new ApiError('Account is already inactive.', 400);
+      mockService.deleteAccount.mockRejectedValue(error);
+      const req = mockReq({});
+      (req as any).user = mockUser;
+      const res = mockRes();
+
+      await controller.deleteAccount(req, res, mockNext);
+
+      expect(mockService.deleteAccount).toHaveBeenCalledWith('user123');
+      expect(mockNext).toHaveBeenCalledWith(error);
     });
   });
 });

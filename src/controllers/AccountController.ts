@@ -301,4 +301,27 @@ export class AccountController {
       next(error);
     }
   }
+
+  async deleteAccount(req: Request, res: Response, next: NextFunction): Promise<void> {
+    try {
+      const user = (req as any).user as IAccountDocument | undefined;
+
+      if (!user) {
+        next(new ApiError('User not found', 404));
+        return;
+      }
+
+      await this.accountService.deleteAccount(user._id.toString());
+
+      const response: ApiResponse<null, null> = {
+        status: 'success',
+        message: 'Account deleted successfully. Your account has been marked as inactive.',
+        data: null,
+      };
+
+      res.status(200).json(response);
+    } catch (error: any) {
+      next(error);
+    }
+  }
 }

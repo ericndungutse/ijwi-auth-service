@@ -148,4 +148,27 @@ export class AccountService implements IAccountService {
     // Log password change event (you can implement logging here)
     console.log(`Password updated for user: ${user.email} at ${new Date().toISOString()}`);
   }
+
+  async deleteAccount(userId: string): Promise<void> {
+    // Validate userId
+    if (!userId) {
+      throw new ApiError('User ID is required.', 400);
+    }
+
+    // Check if user exists and is currently active
+    const user = await this.accountRepository.findById(userId);
+    if (!user) {
+      throw new ApiError('User not found', 404);
+    }
+
+    if (!user.isActive) {
+      throw new ApiError('Account is already inactive.', 400);
+    }
+
+    // Mark account as inactive
+    await this.accountRepository.deleteAccount(userId);
+
+    // Log account deletion event
+    console.log(`Account deactivated for user: ${user.email} at ${new Date().toISOString()}`);
+  }
 }

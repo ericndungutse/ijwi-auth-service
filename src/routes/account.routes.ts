@@ -37,4 +37,8 @@ accountRouter.patch('/update-password', authenticate, (req: Request, res: Respon
   container.accountController.updatePassword(req, res, next)
 );
 
+accountRouter.delete('/delete-account', authenticate, (req: Request, res: Response, next: NextFunction) =>
+  container.accountController.deleteAccount(req, res, next)
+);
+
 module.exports = accountRouter;

@@ -8,6 +8,7 @@ describe('AccountController', () => {
     verifyEmail: jest.fn(),
     forgotPassword: jest.fn(),
     resetPassword: jest.fn(),
+    updatePassword: jest.fn(),
   };
   const controller = new AccountController(mockService as any);
 
@@ -737,6 +738,131 @@ describe('AccountController', () => {
           },
         },
       });
+    });
+  });
+
+  describe('updatePassword', () => {
+    it('should successfully update password and return 200', async () => {
+      const mockUser = {
+        _id: { toString: () => 'user123' },
+        email: 'test@example.com',
+      };
+
+      const mockRequest = {
+        body: {
+          currentPassword: 'CurrentPassword123!',
+          newPassword: 'NewPassword123!',
+          confirmPassword: 'NewPassword123!',
+        },
+        user: mockUser,
+      } as any;
+
+      const mockResponse = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      } as any;
+
+      const mockNext = jest.fn();
+
+      mockService.updatePassword.mockResolvedValue(undefined);
+
+      await controller.updatePassword(mockRequest, mockResponse, mockNext);
+
+      expect(mockService.updatePassword).toHaveBeenCalledWith(
+        'user123',
+        'CurrentPassword123!',
+        'NewPassword123!',
+        'NewPassword123!'
+      );
+      expect(mockResponse.status).toHaveBeenCalledWith(200);
+      expect(mockResponse.json).toHaveBeenCalledWith({
+        status: 'success',
+        message: 'Password updated successfully',
+        data: null,
+      });
+    });
+
+    it('should return 404 when user is not found', async () => {
+      const mockRequest = {
+        body: {
+          currentPassword: 'CurrentPassword123!',
+          newPassword: 'NewPassword123!',
+          confirmPassword: 'NewPassword123!',
+        },
+        user: undefined,
+      } as any;
+
+      const mockResponse = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      } as any;
+
+      const mockNext = jest.fn();
+
+      await controller.updatePassword(mockRequest, mockResponse, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(expect.any(ApiError));
+      expect(mockNext.mock.calls[0][0].message).toBe('User not found');
+      expect(mockNext.mock.calls[0][0].statusCode).toBe(404);
+    });
+
+    it('should handle service error and call next', async () => {
+      const mockUser = {
+        _id: { toString: () => 'user123' },
+        email: 'test@example.com',
+      };
+
+      const mockRequest = {
+        body: {
+          currentPassword: 'CurrentPassword123!',
+          newPassword: 'NewPassword123!',
+          confirmPassword: 'NewPassword123!',
+        },
+        user: mockUser,
+      } as any;
+
+      const mockResponse = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      } as any;
+
+      const mockNext = jest.fn();
+
+      const serviceError = new ApiError('Current password is incorrect.', 401);
+      mockService.updatePassword.mockRejectedValue(serviceError);
+
+      await controller.updatePassword(mockRequest, mockResponse, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(serviceError);
+    });
+
+    it('should handle missing required fields', async () => {
+      const mockUser = {
+        _id: { toString: () => 'user123' },
+        email: 'test@example.com',
+      };
+
+      const mockRequest = {
+        body: {
+          currentPassword: 'CurrentPassword123!',
+          // missing newPassword and confirmPassword
+        },
+        user: mockUser,
+      } as any;
+
+      const mockResponse = {
+        status: jest.fn().mockReturnThis(),
+        json: jest.fn(),
+      } as any;
+
+      const mockNext = jest.fn();
+
+      const serviceError = new ApiError('Current password, new password, and confirm password are required.', 400);
+      mockService.updatePassword.mockRejectedValue(serviceError);
+
+      await controller.updatePassword(mockRequest, mockResponse, mockNext);
+
+      expect(mockNext).toHaveBeenCalledWith(serviceError);
     });
   });
 });

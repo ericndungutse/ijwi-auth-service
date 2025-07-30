@@ -7,6 +7,7 @@ describe('AccountService', () => {
     createAccount: jest.fn(),
     getVerificationCode: jest.fn(),
     findByEmail: jest.fn(),
+    findById: jest.fn(),
     verifyEmail: jest.fn(),
   };
   const mockEmail = {
@@ -226,6 +227,71 @@ describe('AccountService', () => {
       expect(user.passwordResetCode).toBeNull();
       expect(user.passwordResetCodeExpires).toBeNull();
       expect(save).toHaveBeenCalled();
+    });
+  });
+
+  describe('updatePassword', () => {
+    const mockUser = {
+      _id: 'user123',
+      email: 'test@example.com',
+      password: 'hashedPassword',
+      comparePassword: jest.fn(),
+      save: jest.fn(),
+    } as any;
+
+    beforeEach(() => {
+      jest.clearAllMocks();
+    });
+
+    it('should successfully update password when all validations pass', async () => {
+      mockRepo.findById.mockResolvedValue(mockUser);
+      mockUser.comparePassword.mockResolvedValue(true);
+      mockUser.save.mockResolvedValue(mockUser);
+
+      await service.updatePassword('user123', 'currentPassword', 'NewPassword123!', 'NewPassword123!');
+
+      expect(mockRepo.findById).toHaveBeenCalledWith('user123');
+      expect(mockUser.comparePassword).toHaveBeenCalledWith('currentPassword');
+      expect(mockUser.password).toBe('NewPassword123!');
+      expect(mockUser.save).toHaveBeenCalled();
+    });
+
+    it('should throw error when current password is incorrect', async () => {
+      mockRepo.findById.mockResolvedValue(mockUser);
+      mockUser.comparePassword.mockResolvedValue(false);
+
+      await expect(
+        service.updatePassword('user123', 'wrongPassword', 'NewPassword123!', 'NewPassword123!')
+      ).rejects.toThrow('Current password is incorrect.');
+
+      expect(mockUser.comparePassword).toHaveBeenCalledWith('wrongPassword');
+      expect(mockUser.save).not.toHaveBeenCalled();
+    });
+
+    it('should throw error when new password and confirm password do not match', async () => {
+      await expect(
+        service.updatePassword('user123', 'currentPassword', 'NewPassword123!', 'DifferentPassword123!')
+      ).rejects.toThrow('New password and confirm password must match.');
+    });
+
+    it('should throw error when current password and new password are the same', async () => {
+      await expect(
+        service.updatePassword('user123', 'SamePassword123!', 'SamePassword123!', 'SamePassword123!')
+      ).rejects.toThrow('New password must be different from current password.');
+    });
+
+    it('should throw error when user is not found', async () => {
+      mockRepo.findById.mockResolvedValue(null);
+
+      await expect(
+        service.updatePassword('nonexistent', 'currentPassword', 'NewPassword123!', 'NewPassword123!')
+      ).rejects.toThrow('User not found');
+    });
+
+    it('should throw error when required fields are missing', async () => {
+      await expect(service.updatePassword('user123', '', 'NewPassword123!', 'NewPassword123!')).rejects.toThrow(
+        'Current password, new password, and confirm password are required.'
+      );
     });
   });
 });

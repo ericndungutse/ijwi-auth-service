@@ -8,6 +8,7 @@ A Node.js authentication service built with Express, TypeScript, and MongoDB.
 
 - User registration and authentication
 - MongoDB integration with Mongoose
+- Redis session management with automatic expiration
 - TypeScript for type safety
 - Express.js web framework
 - Environment-based configuration
@@ -51,6 +52,19 @@ A Node.js authentication service built with Express, TypeScript, and MongoDB.
    - Add your IP address to the IP Access List
    - Get your connection string from the "Connect" button
 
+4. **Redis Setup:**
+   - Create a Redis Cloud account at https://redis.com/try-free/
+   - Create a new database
+   - Get your connection details (host, port, username, password)
+   - Add the Redis configuration to your `.env` file:
+
+   ```env
+   REDIS_USERNAME=default
+   REDIS_PASSWORD=your-redis-password
+   REDIS_HOST=your-redis-host
+   REDIS_PORT=your-redis-port
+   ```
+
 ## Running the Application
 
 ### Development Mode
@@ -92,6 +106,7 @@ npm start
 src/
 ├── app.ts              # Express application setup
 ├── server.ts           # Server initialization and startup
+├── config/             # Configuration files (Redis, etc.)
 ├── controllers/        # Request handlers
 ├── dto/               # Data transfer objects
 ├── infrastructure/    # Dependency injection container
@@ -113,6 +128,10 @@ src/
 | `JWT_EXPIRES_IN`     | JWT expiration time       | `24h`                   |
 | `BCRYPT_SALT_ROUNDS` | Password hashing rounds   | `12`                    |
 | `CORS_ORIGIN`        | Allowed CORS origins      | `http://localhost:3000` |
+| `REDIS_USERNAME`     | Redis username            | `default`               |
+| `REDIS_PASSWORD`     | Redis password            | Required                |
+| `REDIS_HOST`         | Redis host                | Required                |
+| `REDIS_PORT`         | Redis port                | Required                |
 
 ## Error Handling
 

@@ -15,7 +15,10 @@ describe('AccountService', () => {
     sendVerificationEmail: jest.fn(),
     sendPasswordResetEmail: jest.fn(),
   };
-  const service = new AccountService(mockRepo as any, mockEmail as any);
+  const mockSessionService = {
+    addSession: jest.fn(),
+  };
+  const service = new AccountService(mockRepo as any, mockEmail as any, mockSessionService as any);
 
   beforeEach(() => {
     jest.clearAllMocks();
@@ -52,7 +55,13 @@ describe('AccountService', () => {
 
   describe('signIn', () => {
     it('returns user if credentials are valid', async () => {
-      const user = { comparePassword: jest.fn().mockResolvedValue(true) };
+      const user = {
+        comparePassword: jest.fn().mockResolvedValue(true),
+        generateJwt: jest.fn().mockResolvedValue('mock-jwt-token'),
+        _id: 'mock-user-id',
+        email: 'a@b.com',
+        role: 'user',
+      };
       mockRepo.findByEmail.mockResolvedValue(user);
       const result = await service.signIn('a@b.com', 'pass');
       expect(result).toBe(user);

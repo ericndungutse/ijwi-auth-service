@@ -3,7 +3,7 @@ import { IAccountDocument } from '../../models/account/account.types';
 
 export interface IAccountService {
   createUser(userDto: ICreateAccountDto): Promise<IAccountDocument>;
-  signIn(email: string, password: string): Promise<IAccountDocument | null>;
+  signIn(email: string, password: string, device?: string): Promise<IAccountDocument | null>;
   verifyEmail(email: string, code: number): Promise<boolean>;
   forgotPassword(email: string): Promise<void>;
   resetPassword(email: string, resetCode: number, newPassword: string, confirmPassword: string): Promise<void>;

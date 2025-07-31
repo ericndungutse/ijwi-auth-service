@@ -3,16 +3,19 @@ import { IAccountDocument } from '../../models/account/account.types';
 import { IAccountRepository } from '../../repository/IAccountRepository';
 import { ICreateAccountDto } from '../../dto/accountDtos';
 import { IEmailService } from '../interfaces/IEmailService';
+import { ISessionService } from '../interfaces/ISessionService';
 import { ApiError } from '../../dto/ApiError';
 import { hashDigitCode, generateSixDigitCode } from '../../utils/generateCode';
 
 export class AccountService implements IAccountService {
   private accountRepository: IAccountRepository;
   private emailService: IEmailService;
+  private sessionService: ISessionService;
 
-  constructor(accountRepository: IAccountRepository, emailService: IEmailService) {
+  constructor(accountRepository: IAccountRepository, emailService: IEmailService, sessionService: ISessionService) {
     this.accountRepository = accountRepository;
     this.emailService = emailService;
+    this.sessionService = sessionService;
   }
 
   async createUser(userDto: ICreateAccountDto): Promise<IAccountDocument> {
@@ -29,9 +32,17 @@ export class AccountService implements IAccountService {
     return user;
   }
 
-  async signIn(email: string, password: string): Promise<IAccountDocument | null> {
+  async signIn(email: string, password: string, device?: string): Promise<IAccountDocument | null> {
     const user = await this.accountRepository.findByEmail(email);
     if (user && (await user.comparePassword(password))) {
+      // Generate JWT token
+      const jwt = await user.generateJwt();
+
+      // Store session in Redis (console log for now)
+      const deviceInfo = device || 'unknown';
+      const createdAt = new Date();
+      await this.sessionService.addSession(user._id.toString(), jwt, deviceInfo, user.email, user.role, createdAt);
+
       return user;
     }
     return null;

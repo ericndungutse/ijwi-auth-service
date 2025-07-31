@@ -24,6 +24,11 @@ jobs:
       EMAIL_USER: ${{ secrets.EMAIL_USER }}
       EMAIL_PASS: ${{ secrets.EMAIL_PASS }}
       EMAIL_FROM: ${{ secrets.EMAIL_FROM }}
+      REDIS_HOST: ${{ secrets.REDIS_HOST }}
+      REDIS_PORT: ${{ secrets.REDIS_PORT }}
+      REDIS_USERNAME: ${{ secrets.REDIS_USERNAME }}
+      REDIS_PASSWORD: ${{ secrets.REDIS_PASSWORD }}
+      INTERNAL_SIGNATURE: ${{ secrets.INTERNAL_SIGNATURE }}
 
     steps:
       - name: Checkout code

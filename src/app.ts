@@ -7,6 +7,8 @@ const accountRouter = require('./routes/account.routes');
 import { Application, Request, Response, NextFunction } from 'express';
 import { ApiResponse } from './dto/ApiResponse';
 import { errorHandler } from './middleware/errorHandler';
+import { ApiError } from './dto/ApiError';
+import hashString from './utils/hashString';
 
 // Load environment variables
 dotenv.config();
@@ -16,9 +18,37 @@ export class App {
 
   constructor() {
     this.app = express();
+    this.initializeInternalSignatureMiddleware();
     this.initializeMiddlewares();
     this.initializeRoutes();
     this.initializeErrorHandling();
+  }
+  private initializeInternalSignatureMiddleware(): void {
+    this.app.use((req: Request, res: Response, next: NextFunction) => {
+      const hashedSignature = req.headers['x-internal-signature'];
+      const internalTimestamp = req.headers['x-internal-timestamp'];
+
+      if (!hashedSignature || !internalTimestamp) {
+        return next(new ApiError('Unauthorized. Request did not come from API Gateway', 401));
+      }
+
+      // Get Internal Signature
+      const internalSignature: string = process.env.INTERNAL_SIGNATURE || '';
+
+      if (!internalSignature) {
+        return next(new ApiError('Internal server error', 500));
+      }
+
+      // Get Hashed Internal Signature
+      const hashedInternalSignature = hashString(internalSignature);
+
+      // Compare Hashed Internal Signature with the one in the request
+      if (hashedInternalSignature !== hashedSignature) {
+        return next(new ApiError('Unauthorized. Request did not come from API Gateway', 401));
+      }
+
+      next();
+    });
   }
 
   private initializeMiddlewares(): void {

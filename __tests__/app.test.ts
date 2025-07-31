@@ -1,6 +1,6 @@
 import mongoose from 'mongoose';
 import { MongoMemoryServer } from 'mongodb-memory-server';
-import { describe, it, expect, beforeAll, afterAll, beforeEach } from '@jest/globals';
+import { describe, it, expect, beforeAll, afterAll, beforeEach, afterEach, jest } from '@jest/globals';
 import supertest from 'supertest';
 import { App } from '../src/app';
 
@@ -132,6 +132,223 @@ describe('App-level routes and middleware', () => {
 
       expect(response.status).toBe(404);
       expect(response.body.message).toBe('Route /unknown/route not found');
+    });
+  });
+});
+
+describe('Internal Signature Middleware', () => {
+  let originalEnv: NodeJS.ProcessEnv;
+  let originalNodeEnv: string | undefined;
+
+  beforeEach(() => {
+    originalEnv = { ...process.env };
+    originalNodeEnv = process.env.NODE_ENV;
+  });
+
+  afterEach(() => {
+    process.env = originalEnv;
+    if (originalNodeEnv) {
+      process.env.NODE_ENV = originalNodeEnv;
+    } else {
+      delete process.env.NODE_ENV;
+    }
+  });
+
+  describe('when NODE_ENV is test', () => {
+    beforeEach(() => {
+      process.env.NODE_ENV = 'test';
+    });
+
+    it('should allow requests without signature headers', async () => {
+      const app = new App().getApp();
+
+      const response = await supertest(app)
+        .post('/api/v1/auth/register')
+        .send({ email: 'test@example.com', password: 'password123' });
+
+      // Should not be blocked by signature middleware (may fail for other reasons like validation)
+      expect(response.status).not.toBe(401);
+    }, 10000); // Increase timeout
+
+    it('should allow requests with invalid signature headers', async () => {
+      const app = new App().getApp();
+
+      const response = await supertest(app)
+        .post('/api/v1/auth/register')
+        .set('x-internal-signature', 'invalid-signature')
+        .set('x-internal-timestamp', Date.now().toString())
+        .send({ email: 'test@example.com', password: 'password123' });
+
+      // Should not be blocked by signature middleware
+      expect(response.status).not.toBe(401);
+    });
+  });
+
+  describe('when NODE_ENV is not test', () => {
+    beforeEach(() => {
+      process.env.NODE_ENV = 'production';
+      process.env.INTERNAL_SIGNATURE = 'test-secret-key';
+    });
+
+    it('should allow health check requests without signature', async () => {
+      const app = new App().getApp();
+
+      const response = await supertest(app).get('/health');
+
+      expect(response.status).toBe(200);
+      expect(response.body.status).toBe('success');
+    });
+
+    it('should reject requests without signature headers', async () => {
+      const app = new App().getApp();
+
+      const response = await supertest(app)
+        .post('/api/v1/auth/register')
+        .send({ email: 'test@example.com', password: 'password123' });
+
+      expect(response.status).toBe(401);
+      expect(response.body.message).toBe('Unauthorized. Request did not come from API Gateway');
+    });
+
+    it('should reject requests with missing x-internal-signature header', async () => {
+      const app = new App().getApp();
+
+      const response = await supertest(app)
+        .post('/api/v1/auth/register')
+        .set('x-internal-timestamp', Date.now().toString())
+        .send({ email: 'test@example.com', password: 'password123' });
+
+      expect(response.status).toBe(401);
+      expect(response.body.message).toBe('Unauthorized. Request did not come from API Gateway');
+    });
+
+    it('should reject requests with missing x-internal-timestamp header', async () => {
+      const app = new App().getApp();
+
+      const response = await supertest(app)
+        .post('/api/v1/auth/register')
+        .set('x-internal-signature', 'some-signature')
+        .send({ email: 'test@example.com', password: 'password123' });
+
+      expect(response.status).toBe(401);
+      expect(response.body.message).toBe('Unauthorized. Request did not come from API Gateway');
+    });
+
+    it('should reject requests with invalid signature', async () => {
+      const app = new App().getApp();
+
+      const response = await supertest(app)
+        .post('/api/v1/auth/register')
+        .set('x-internal-signature', 'invalid-signature')
+        .set('x-internal-timestamp', Date.now().toString())
+        .send({ email: 'test@example.com', password: 'password123' });
+
+      expect(response.status).toBe(401);
+      expect(response.body.message).toBe('Unauthorized. Request did not come from API Gateway');
+    });
+
+    it('should reject requests with old timestamp (replay attack)', async () => {
+      const app = new App().getApp();
+
+      // Generate valid signature but use old timestamp
+      const crypto = require('crypto');
+      const validSignature = crypto.createHmac('sha256', 'test-secret-key').digest('hex');
+      const oldTimestamp = Date.now() - 120000; // 2 minutes ago
+
+      const response = await supertest(app)
+        .post('/api/v1/auth/register')
+        .set('x-internal-signature', validSignature)
+        .set('x-internal-timestamp', oldTimestamp.toString())
+        .send({ email: 'test@example.com', password: 'password123' });
+
+      expect(response.status).toBe(401);
+      expect(response.body.message).toBe('Unauthorized. Request is too old');
+    });
+
+    it('should allow requests with valid signature and recent timestamp', async () => {
+      const app = new App().getApp();
+
+      // Generate valid signature
+      const crypto = require('crypto');
+      const validSignature = crypto.createHmac('sha256', 'test-secret-key').digest('hex');
+      const timestamp = Date.now().toString();
+
+      const response = await supertest(app)
+        .post('/api/v1/auth/register')
+        .set('x-internal-signature', validSignature)
+        .set('x-internal-timestamp', timestamp)
+        .send({ email: 'test@example.com', password: 'password123' });
+
+      // Should not be blocked by signature middleware (may fail for other reasons like validation)
+      expect(response.status).not.toBe(401);
+    });
+
+    it('should handle missing INTERNAL_SIGNATURE environment variable', async () => {
+      delete process.env.INTERNAL_SIGNATURE;
+      const app = new App().getApp();
+
+      const response = await supertest(app)
+        .post('/api/v1/auth/register')
+        .set('x-internal-signature', 'some-signature')
+        .set('x-internal-timestamp', Date.now().toString())
+        .send({ email: 'test@example.com', password: 'password123' });
+
+      expect(response.status).toBe(500);
+      expect(response.body.message).toBe('Internal server error');
+    });
+
+    it('should allow requests with valid signature within 1 minute leeway', async () => {
+      const app = new App().getApp();
+
+      // Generate valid signature
+      const crypto = require('crypto');
+      const validSignature = crypto.createHmac('sha256', 'test-secret-key').digest('hex');
+      const timestamp = Date.now() - 30000; // 30 seconds ago (within 1 minute leeway)
+
+      const response = await supertest(app)
+        .post('/api/v1/auth/register')
+        .set('x-internal-signature', validSignature)
+        .set('x-internal-timestamp', timestamp.toString())
+        .send({ email: 'test@example.com', password: 'password123' });
+
+      // Should not be blocked by signature middleware
+      expect(response.status).not.toBe(401);
+    });
+
+    it('should reject requests with valid signature but old timestamp', async () => {
+      const app = new App().getApp();
+
+      // Generate valid signature
+      const crypto = require('crypto');
+      const validSignature = crypto.createHmac('sha256', 'test-secret-key').digest('hex');
+      const timestamp = Date.now() - 70000; // 70 seconds ago (outside 1 minute leeway)
+
+      const response = await supertest(app)
+        .post('/api/v1/auth/register')
+        .set('x-internal-signature', validSignature)
+        .set('x-internal-timestamp', timestamp.toString())
+        .send({ email: 'test@example.com', password: 'password123' });
+
+      expect(response.status).toBe(401);
+      expect(response.body.message).toBe('Unauthorized. Request is too old');
+    });
+  });
+
+  describe('when NODE_ENV is development', () => {
+    beforeEach(() => {
+      process.env.NODE_ENV = 'development';
+      process.env.INTERNAL_SIGNATURE = 'test-secret-key';
+    });
+
+    it('should reject requests without signature headers', async () => {
+      const app = new App().getApp();
+
+      const response = await supertest(app)
+        .post('/api/v1/auth/register')
+        .send({ email: 'test@example.com', password: 'password123' });
+
+      expect(response.status).toBe(401);
+      expect(response.body.message).toBe('Unauthorized. Request did not come from API Gateway');
     });
   });
 });

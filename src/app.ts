@@ -25,6 +25,11 @@ export class App {
   }
   private initializeInternalSignatureMiddleware(): void {
     this.app.use((req: Request, res: Response, next: NextFunction) => {
+      // Allow requests in test route
+      if (process.env.NODE_ENV === 'test') {
+        return next();
+      }
+
       // Allow requests in health check route
       if (req.path === '/health') {
         return next();

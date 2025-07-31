@@ -25,6 +25,11 @@ export class App {
   }
   private initializeInternalSignatureMiddleware(): void {
     this.app.use((req: Request, res: Response, next: NextFunction) => {
+      // Allow requests in health check route
+      if (req.path === '/health') {
+        return next();
+      }
+
       const hashedSignature = req.headers['x-internal-signature'];
       const internalTimestamp = req.headers['x-internal-timestamp'];
 
@@ -45,6 +50,11 @@ export class App {
       // Compare Hashed Internal Signature with the one in the request
       if (hashedInternalSignature !== hashedSignature) {
         return next(new ApiError('Unauthorized. Request did not come from API Gateway', 401));
+      }
+
+      // Prevent replay attacks. Allow 1 minute of leeway
+      if (Number(internalTimestamp) < Date.now() - 60000) {
+        return next(new ApiError('Unauthorized. Request is too old', 401));
       }
 
       next();

@@ -15,7 +15,10 @@ describe('AccountService', () => {
     sendVerificationEmail: jest.fn(),
     sendPasswordResetEmail: jest.fn(),
   };
-  const service = new AccountService(mockRepo as any, mockEmail as any);
+  const mockSessionService = {
+    addSession: jest.fn(),
+  };
+  const service = new AccountService(mockRepo as any, mockEmail as any, mockSessionService as any);
 
   beforeEach(() => {
     jest.clearAllMocks();

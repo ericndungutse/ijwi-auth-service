@@ -1,9 +1,16 @@
 import { Request, Response, NextFunction } from 'express';
 import { IAccountService } from '../services/interfaces/IAccountService';
-import { ICreateAccountDto, IAccountDto, IResetPasswordDto, ICurrentUserDto, IUpdatePasswordDto } from '../dto/accountDtos';
+import {
+  ICreateAccountDto,
+  IAccountDto,
+  IResetPasswordDto,
+  ICurrentUserDto,
+  IUpdatePasswordDto,
+} from '../dto/accountDtos';
 import { ApiResponse } from '../dto/ApiResponse';
 import { ApiError } from '../dto/ApiError';
 import { IAccountDocument } from '../models/account/account.types';
+import { extractDeviceInfo } from '../utils/deviceInfo';
 
 export class AccountController {
   private accountService: IAccountService;
@@ -41,7 +48,10 @@ export class AccountController {
     // Check for client type header
     const clientType = req.headers['x-client-type'] as 'mobile' | 'web' | undefined;
 
-    const user = await this.accountService.signIn(email, password);
+    // Get device information from headers
+    const deviceInfo = extractDeviceInfo(req);
+
+    const user = await this.accountService.signIn(email, password, deviceInfo.deviceString);
 
     if (!user) {
       const response: ApiResponse<null, { message: string }[]> = {
@@ -283,12 +293,7 @@ export class AccountController {
         return;
       }
 
-      await this.accountService.updatePassword(
-        user._id.toString(),
-        currentPassword,
-        newPassword,
-        confirmPassword
-      );
+      await this.accountService.updatePassword(user._id.toString(), currentPassword, newPassword, confirmPassword);
 
       const response: ApiResponse<null, null> = {
         status: 'success',
